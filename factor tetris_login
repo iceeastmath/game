@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>약수 테트리스</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            padding: 10px;
+            touch-action: manipulation;
+        }
+        
+        .container {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+            transform: scale(0.85) translateX(10px);
+            transform-origin: center;
+        }
+        
+        .game-area { display: flex; flex-direction: column; align-items: center; }
+        
+        .info-panel {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            min-width: 180px;
+        }
+        
+        .block-size-info {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .block-size-info h3 { margin-bottom: 8px; font-size: 14px; color: rgba(255,255,255,0.8); }
+        .block-size-display { font-size: 24px; font-weight: bold; color: #4ade80; }
+        
+        canvas {
+            border: 3px solid white;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .score { font-size: 28px; font-weight: bold; margin-top: 15px; text-align: center; }
+        
+        .next-blocks { margin-bottom: 20px; }
+        .next-blocks h3 { margin-bottom: 12px; text-align: center; font-size: 16px; }
+        
+        .next-block-item {
+            background: rgba(255,255,255,0.15);
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .delete-button-area { margin-top: 20px; text-align: center; }
+        
+        .delete-button {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 auto;
+        }
+        
+        .delete-button:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.4); }
+        .delete-button:active { transform: translateY(0); }
+        .delete-button.disabled { background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); cursor: not-allowed; opacity: 0.6; }
+        .delete-button.disabled:hover { transform: none; }
+        .delete-status { font-size: 14px; margin-top: 10px; text-align: center; }
+        
+        .game-over {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        /* ──────────────── 시작 화면 ──────────────── */
+        .start-screen {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 24px;
+            padding: 20px;
+        }
+        
+        .start-screen h1 {
+            font-size: 44px;
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74,222,128,0.5);
+            margin-bottom: 4px;
+        }
+        
+        .start-form {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 16px;
+            padding: 28px 32px;
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        
+        .form-group label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.75);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        /* 반 선택 드롭다운 */
+        .class-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .class-trigger {
+            width: 100%;
+            background: rgba(255,255,255,0.12);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 11px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: border-color 0.2s, background 0.2s;
+            user-select: none;
+        }
+
+        .class-trigger:hover { border-color: #4ade80; background: rgba(74,222,128,0.1); }
+        .class-trigger.open  { border-color: #4ade80; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+        .class-trigger-arrow {
+            font-size: 12px;
+            transition: transform 0.2s ease;
+            color: rgba(255,255,255,0.6);
+        }
+        .class-trigger.open .class-trigger-arrow { transform: rotate(180deg); }
+
+        .class-trigger-text { color: rgba(255,255,255,0.5); font-weight: normal; }
+        .class-trigger-text.selected-text { color: white; font-weight: bold; }
+
+        .class-panel {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0; right: 0;
+            background: rgba(20, 40, 90, 0.97);
+            border: 2px solid #4ade80;
+            border-top: none;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            overflow: hidden;
+            z-index: 50;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0;
+        }
+
+        .class-panel.open {
+            display: grid;
+            animation: dropDown 0.18s ease;
+        }
+
+        @keyframes dropDown {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .class-option {
+            background: transparent;
+            border: none;
+            border-right: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            padding: 13px 0;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.12s;
+        }
+
+        .class-option:nth-child(4n) { border-right: none; }
+        .class-option:nth-last-child(-n+4) { border-bottom: none; }
+
+        .class-option:hover    { background: rgba(74,222,128,0.2); color: #4ade80; }
+        .class-option.selected { background: linear-gradient(135deg, #4ade80, #22c55e); color: #14532d; }
+        
+        .name-input {
+            background: rgba(255,255,255,0.12);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            padding: 11px 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+        
+        .name-input::placeholder { color: rgba(255,255,255,0.35); }
+        .name-input:focus { border-color: #4ade80; }
+        
+        .start-button {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: #14532d;
+            border: none;
+            padding: 16px 0;
+            border-radius: 50px;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(74,222,128,0.35);
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 360px;
+        }
+        
+        .start-button:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(74,222,128,0.55); }
+        .start-button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        
+        .form-error {
+            font-size: 13px;
+            color: #f87171;
+            text-align: center;
+            min-height: 18px;
+        }
+
+        /* 카운트다운 */
+        .countdown {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        
+        .countdown-number {
+            font-size: 120px;
+            font-weight: bold;
+            color: #4ade80;
+            text-shadow: 0 0 40px rgba(74,222,128,0.8);
+            animation: countdownPulse 1s ease-in-out;
+        }
+        
+        @keyframes countdownPulse {
+            0%   { transform: scale(0.5); opacity: 0; }
+            50%  { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1);   opacity: 1; }
+        }
+        
+        /* 게임 오버 */
+        .game-over-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            color: #333;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .game-over-content h2 { margin-bottom: 20px; color: #e74c3c; }
+        
+        .submit-status {
+            font-size: 14px;
+            margin: 10px 0 0 0;
+            color: #666;
+            min-height: 20px;
+        }
+
+        .submit-status.success { color: #16a34a; font-weight: bold; }
+        .submit-status.error   { color: #dc2626; }
+        
+        .game-over-content button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        
+        .game-over-content button:hover { background: #2980b9; }
+        
+        .controls {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        /* 모바일 컨트롤 */
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+        
+        .mobile-btn {
+            width: 70px; height: 70px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            border-radius: 15px;
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+        }
+        
+        .mobile-btn:active { background: rgba(255,255,255,0.4); transform: scale(0.95); }
+        
+        .mobile-controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            grid-template-rows: repeat(3, 70px);
+            gap: 10px;
+        }
+        
+        .mobile-rotate  { grid-column: 2; grid-row: 1; }
+        .mobile-left    { grid-column: 1; grid-row: 2; }
+        .mobile-down    { grid-column: 2; grid-row: 2; }
+        .mobile-right   { grid-column: 3; grid-row: 2; }
+        
+        .mobile-bottom-row {
+            grid-column: 1 / 4;
+            grid-row: 3;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .mobile-delete {
+            flex: 1; width: auto;
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        .mobile-delete.disabled { background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); opacity: 0.6; }
+        .mobile-harddrop { flex: 1; width: auto; background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }
+
+        /* 점수 팝업 */
+        .score-popup {
+            position: fixed;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74,222,128,0.8);
+            pointer-events: none;
+            z-index: 500;
+            animation: scorePopup 0.8s ease-out forwards;
+        }
+        
+        @keyframes scorePopup {
+            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50%  { opacity: 1; transform: translate(-50%, -70%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+        }
+
+        /* ── 반응형 ── */
+        @media (max-width: 768px) {
+            body { padding: 0; overflow-x: hidden; }
+            .container {
+                flex-direction: column;
+                gap: 10px;
+                transform: scale(1) translateX(0) translateY(0);
+                width: 100%;
+                padding: 10px;
+            }
+            .game-area { width: 100%; order: 2; padding-bottom: 200px; }
+            .block-size-info { padding: 10px; margin-bottom: 0; }
+            .top-info-wrapper {
+                display: flex;
+                gap: 10px;
+                width: 100%;
+                max-width: 360px;
+                margin: 0 auto 10px auto;
+            }
+            .top-info-wrapper .block-size-info { flex: 0.55; min-width: 0; }
+            .top-info-wrapper .info-panel { flex: 1; min-width: 0; margin: 0; }
+            .block-size-info h3 { font-size: 12px; }
+            .block-size-display { font-size: 18px; }
+            .canvas { width: 100% !important; height: auto !important; max-width: 360px; border: 2px solid white; }
+            .score { font-size: 20px; margin-top: 10px; }
+            .score div { font-size: 14px !important; }
+            .info-panel { order: 1; width: 100%; max-height: 63px; margin: 0 auto; padding: 5px; }
+            .next-blocks { margin-bottom: 5px; }
+            .next-blocks h3 { font-size: 12px; margin-bottom: 6px; }
+            #nextBlocksList { display: flex; gap: 6px; justify-content: center; }
+            .next-block-item { padding: 4px 10px; font-size: 12px; flex: 0 0 auto; min-width: 40px; }
+            .delete-button { display: none; }
+            .delete-status { display: none; }
+            .mobile-controls { display: flex; flex-direction: column; gap: 10px; bottom: 10px; }
+            .mobile-btn { width: 70px; height: 70px; font-size: 28px; }
+            .controls { display: none; }
+            .start-screen h1 { font-size: 28px; }
+            .start-button { font-size: 18px; }
+            .countdown-number { font-size: 80px; }
+            .game-over-content { padding: 30px 20px; margin: 0 20px; max-width: 90%; }
+            .game-over-content h2 { font-size: 24px; }
+            .game-over-content p { font-size: 18px !important; }
+            .start-form { padding: 20px; }
+        }
+
+        @media (max-width: 768px) and (max-height: 750px) {
+            body { padding: 5px; }
+            .container { gap: 5px; padding: 5px; }
+            .game-area { padding-bottom: 180px; }
+            .top-info-wrapper { margin-bottom: 5px; max-width: 300px; }
+            .block-size-info { padding: 6px; }
+            .block-size-info h3 { font-size: 11px; margin-bottom: 4px; }
+            .block-size-display { font-size: 16px; }
+            canvas { max-width: 300px !important; border: 2px solid white; }
+            .score { font-size: 18px; margin-top: 5px; }
+            .score div { font-size: 12px !important; margin-top: 3px !important; }
+            .info-panel { padding: 4px; max-height: 55px; }
+            .next-blocks h3 { font-size: 11px; margin-bottom: 4px; }
+            .next-block-item { padding: 3px 8px; font-size: 11px; min-width: 32px; }
+            #nextBlocksList { gap: 4px; }
+            .mobile-controls { bottom: 5px; }
+            .mobile-btn { width: 55px; height: 55px; font-size: 22px; }
+            .mobile-controls-grid { grid-template-columns: repeat(3, 55px); grid-template-rows: repeat(3, 55px); gap: 6px; }
+            .mobile-bottom-row { gap: 6px; }
+        }
+
+        @media (max-width: 768px) and (max-height: 670px) {
+            .game-area { padding-bottom: 160px; }
+            .top-info-wrapper { max-width: 280px; }
+            canvas { max-width: 280px !important; }
+            .mobile-btn { width: 50px; height: 50px; font-size: 20px; }
+            .mobile-controls-grid { grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); gap: 5px; }
+            .mobile-bottom-row { gap: 5px; }
+            .score { font-size: 16px; margin-top: 3px; }
+        }
+
+        @media (max-width: 480px) {
+            .container { transform: scale(0.95) translateX(0) translateY(0); }
+            canvas { max-width: 320px; }
+            .info-panel { max-width: 320px; }
+            .mobile-btn { width: 60px; height: 60px; font-size: 24px; }
+            .mobile-controls-grid { grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(3, 60px); gap: 8px; }
+            .mobile-bottom-row { gap: 8px; }
+            .next-block-item { padding: 5px 8px; font-size: 11px; min-width: 35px; }
+            #nextBlocksList { gap: 5px; }
+        }
+
+        body:focus { outline: none; }
+    </style>
+</head>
+<body tabindex="0">
+    <div class="container">
+        <div class="top-info-wrapper">
+            <div class="block-size-info">
+                <h3>현재 블록 크기</h3>
+                <div class="block-size-display" id="blockSize">-</div>
+            </div>
+            <div class="info-panel">
+                <div class="next-blocks">
+                    <h3>다음 블록</h3>
+                    <div id="nextBlocksList"></div>
+                </div>
+                <div class="delete-button-area">
+                    <button class="delete-button" id="deleteBtn">
+                        <span style="font-size:20px;">🗑</span>
+                        <span>블록 삭제</span>
+                    </button>
+                    <div class="delete-status" id="deleteStatus">삭제 가능</div>
+                </div>
+            </div>
+        </div>
+        <div class="game-area">
+            <canvas id="gameCanvas" width="480" height="630"></canvas>
+            <div class="score">
+                점수: <span id="score">0</span>
+                <div style="font-size:16px;margin-top:5px;color:#f39c12;">콤보: <span id="combo">0</span></div>
+            </div>
+            <div class="controls">
+                <div>← → : 이동 &nbsp; ↑ : 회전</div>
+                <div>↓ : 낙하 &nbsp; Space : 고속 낙하</div>
+                <div>Z : 블록 삭제</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 시작 화면 ── -->
+    <div class="start-screen" id="startScreen">
+        <h1>🎮 약수 테트리스</h1>
+        <div class="start-form">
+            <div class="form-group">
+                <label>반을 선택하세요</label>
+                <div class="class-dropdown" id="classDropdown">
+                    <button class="class-trigger" id="classTrigger" type="button">
+                        <span class="class-trigger-text" id="classTriggerText">반 선택</span>
+                        <span class="class-trigger-arrow">▼</span>
+                    </button>
+                    <div class="class-panel" id="classPanel">
+                        <button class="class-option" data-class="1반" type="button">1반</button>
+                        <button class="class-option" data-class="2반" type="button">2반</button>
+                        <button class="class-option" data-class="3반" type="button">3반</button>
+                        <button class="class-option" data-class="4반" type="button">4반</button>
+                        <button class="class-option" data-class="5반" type="button">5반</button>
+                        <button class="class-option" data-class="6반" type="button">6반</button>
+                        <button class="class-option" data-class="7반" type="button">7반</button>
+                        <button class="class-option" data-class="8반" type="button">8반</button>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>이름을 입력하세요</label>
+                <input class="name-input" id="nameInput" type="text" placeholder="이름" maxlength="10" autocomplete="off">
+            </div>
+            <div class="form-error" id="formError"></div>
+        </div>
+        <button class="start-button" id="startBtn">게임 시작</button>
+    </div>
+
+    <!-- ── 카운트다운 ── -->
+    <div class="countdown" id="countdown">
+        <div class="countdown-number" id="countdownNumber">3</div>
+    </div>
+
+    <!-- ── 게임 오버 ── -->
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2>게임 오버!</h2>
+            <p style="font-size:20px;margin:8px 0;">
+                <span id="gameOverInfo" style="color:#555;font-size:16px;"></span>
+            </p>
+            <p style="font-size:24px;margin:16px 0;">최종 점수: <strong id="finalScore">0</strong></p>
+            <div class="submit-status" id="submitStatus"></div>
+            <button id="restartBtn">다시 하기</button>
+        </div>
+    </div>
+
+    <!-- ── 모바일 버튼 ── -->
+    <div class="mobile-controls">
+        <div class="mobile-controls-grid">
+            <div class="mobile-btn mobile-rotate"   id="mobileRotate">⇳</div>
+            <div class="mobile-btn mobile-left"     id="mobileLeft">⬅</div>
+            <div class="mobile-btn mobile-down"     id="mobileDown">⬇</div>
+            <div class="mobile-btn mobile-right"    id="mobileRight">➡</div>
+            <div class="mobile-bottom-row">
+                <div class="mobile-btn mobile-delete"   id="mobileDelete">🗑</div>
+                <div class="mobile-btn mobile-harddrop" id="mobileHardDrop">⏬</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================================
+    // ⭐ 구글 앱스크립트 웹앱 URL을 여기에 입력하세요
+    // ============================================================
+    const APPS_SCRIPT_URL = '여기에 URL 입력하세요';
+
+    // ============================================================
+    // 플레이어 정보
+    // ============================================================
+    let playerClass = '';
+    let playerName  = '';
+
+    // ── 반 선택 드롭다운 ──
+    const classTrigger   = document.getElementById('classTrigger');
+    const classPanel     = document.getElementById('classPanel');
+    const classTriggerText = document.getElementById('classTriggerText');
+
+    classTrigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isOpen = classPanel.classList.toggle('open');
+        classTrigger.classList.toggle('open', isOpen);
+    });
+
+    classPanel.addEventListener('click', function(e) {
+        const btn = e.target.closest('.class-option');
+        if (!btn) return;
+        playerClass = btn.dataset.class;
+        // 선택 표시
+        document.querySelectorAll('.class-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        // 트리거 텍스트 업데이트
+        classTriggerText.textContent = playerClass;
+        classTriggerText.classList.add('selected-text');
+        // 닫기
+        classPanel.classList.remove('open');
+        classTrigger.classList.remove('open');
+        document.getElementById('formError').textContent = '';
+    });
+
+    // 패널 바깥 클릭 시 닫기
+    document.addEventListener('click', function() {
+        classPanel.classList.remove('open');
+        classTrigger.classList.remove('open');
+    });
+
+    // ============================================================
+    // 게임 모듈
+    // ============================================================
+    const Game = (function() {
+        let _score        = 0;
+        let _combo        = 0;
+        let _gameRunning  = false;
+        let _deleteAvail  = true;
+        let _blocksUntil  = 0;
+        let _blocksPlaced = 0;   // 조작 방지용: 배치된 블록 수
+        let _gameStartTime = 0;  // 조작 방지용: 게임 시작 시각
+
+        const GRID_SIZE      = 16;
+        const CELL_SIZE      = 30;
+        const TOP_MARGIN     = 5;
+        const VISIBLE_HEIGHT = GRID_SIZE + TOP_MARGIN;
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx    = canvas.getContext('2d');
+        canvas.width  = GRID_SIZE * CELL_SIZE;
+        canvas.height = VISIBLE_HEIGHT * CELL_SIZE;
+
+        let board        = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+        let currentBlock = null;
+        let nextBlocks   = [];
+        let lastDropTime = 0;
+        let fastDrop     = false;
+        let dropInterval = 1300;
+        let isStarting   = false;
+
+        const BLOCK_SIZES = [2,3,4,5,6,7,8,9,10,12,14,15,16,18,20,22,24];
+
+        const BLOCK_CONFIGS = {
+            2:  [[2,1],[1,2]],
+            3:  [[3,1],[1,3]],
+            4:  [[4,1],[2,2],[1,4]],
+            5:  [[5,1],[1,5]],
+            6:  [[6,1],[3,2],[2,3],[1,6]],
+            7:  [[7,1],[1,7]],
+            8:  [[8,1],[4,2],[2,4],[1,8]],
+            9:  [[9,1],[3,3],[1,9]],
+            10: [[10,1],[5,2],[2,5],[1,10]],
+            12: [[12,1],[6,2],[4,3],[3,4],[2,6],[1,12]],
+            14: [[14,1],[7,2],[2,7],[1,14]],
+            15: [[15,1],[5,3],[3,5],[1,15]],
+            16: [[16,1],[8,2],[4,4],[2,8],[1,16]],
+            18: [[9,2],[6,3],[3,6],[2,9],[1,18]],
+            20: [[10,2],[5,4],[4,5],[2,10],[1,20]],
+            22: [[11,2],[2,11],[1,22]],
+            24: [[12,2],[8,3],[6,4],[4,6],[3,8],[2,12],[1,24]]
+        };
+
+        function createBlock(size) {
+            const configs     = BLOCK_CONFIGS[size].map(([w,h]) => ({w,h}));
+            const startConfig = configs[0];
+            return {
+                size, width: startConfig.w, height: startConfig.h,
+                x: Math.floor((GRID_SIZE - startConfig.w) / 2),
+                y: -TOP_MARGIN, configIndex: 0, configs
+            };
+        }
+
+        function initNextBlocks() {
+            nextBlocks = [];
+            for (let i = 0; i < 4; i++)
+                nextBlocks.push(BLOCK_SIZES[Math.floor(Math.random() * BLOCK_SIZES.length)]);
+            updateNextBlocksDisplay();
+        }
+
+        function getNextBlock() {
+            const size = nextBlocks.shift();
+            nextBlocks.push(BLOCK_SIZES[Math.floor(Math.random() * BLOCK_SIZES.length)]);
+            updateNextBlocksDisplay();
+            return createBlock(size);
+        }
+
+        function updateNextBlocksDisplay() {
+            document.getElementById('nextBlocksList').innerHTML =
+                nextBlocks.map(s => `<div class="next-block-item">${s}개</div>`).join('');
+        }
+
+        function drawBoard() {
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(30,60,114,0.3)';
+            ctx.fillRect(0, 0, canvas.width, TOP_MARGIN * CELL_SIZE);
+
+            const boundaryY = TOP_MARGIN * CELL_SIZE;
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5,5]);
+            ctx.beginPath();
+            ctx.moveTo(0, boundaryY);
+            ctx.lineTo(canvas.width, boundaryY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.lineWidth = 1;
+
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const screenY = (y + TOP_MARGIN) * CELL_SIZE;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                    ctx.strokeRect(x * CELL_SIZE, screenY, CELL_SIZE, CELL_SIZE);
+                    if (board[y][x]) {
+                        ctx.fillStyle = '#3498db';
+                        ctx.fillRect(x * CELL_SIZE + 1, screenY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                    }
+                }
+            }
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 3;
+            for (let x = 4; x < GRID_SIZE; x += 4) {
+                ctx.beginPath();
+                ctx.moveTo(x * CELL_SIZE, boundaryY);
+                ctx.lineTo(x * CELL_SIZE, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 4; y < GRID_SIZE; y += 4) {
+                const screenY = (y + TOP_MARGIN) * CELL_SIZE;
+                ctx.beginPath();
+                ctx.moveTo(0, screenY);
+                ctx.lineTo(canvas.width, screenY);
+                ctx.stroke();
+            }
+            ctx.lineWidth = 1;
+        }
+
+        function drawBlock() {
+            if (!currentBlock) return;
+            ctx.fillStyle = '#4ade80';
+            for (let dy = 0; dy < currentBlock.height; dy++) {
+                for (let dx = 0; dx < currentBlock.width; dx++) {
+                    const x = currentBlock.x + dx;
+                    const y = currentBlock.y + dy;
+                    const screenY = (y + TOP_MARGIN) * CELL_SIZE;
+                    if (x >= 0 && x < GRID_SIZE && screenY >= 0 && screenY < canvas.height) {
+                        ctx.fillRect(x * CELL_SIZE + 1, screenY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                    }
+                }
+            }
+            document.getElementById('blockSize').textContent =
+                `${currentBlock.size} = ${currentBlock.width} × ${currentBlock.height}`;
+        }
+
+        function canMove(block, newX, newY) {
+            for (let dy = 0; dy < block.height; dy++) {
+                for (let dx = 0; dx < block.width; dx++) {
+                    const x = newX + dx, y = newY + dy;
+                    if (x < 0 || x >= GRID_SIZE || y >= GRID_SIZE) return false;
+                    if (y >= 0 && board[y][x]) return false;
+                }
+            }
+            return true;
+        }
+
+        function showScorePopup(points, delay = 0) {
+            setTimeout(() => {
+                const popup = document.createElement('div');
+                popup.className = 'score-popup';
+                popup.textContent = `+${points}`;
+                const rect = canvas.getBoundingClientRect();
+                popup.style.left = (rect.left + rect.width  / 2) + 'px';
+                popup.style.top  = (rect.top  + rect.height / 2) + 'px';
+                document.body.appendChild(popup);
+                setTimeout(() => popup.remove(), 800);
+            }, delay);
+        }
+
+        function placeBlock() {
+            let isGameOver = false;
+            for (let dy = 0; dy < currentBlock.height; dy++) {
+                for (let dx = 0; dx < currentBlock.width; dx++) {
+                    const x = currentBlock.x + dx, y = currentBlock.y + dy;
+                    if (y < 0) isGameOver = true;
+                    if (y >= 0 && y < GRID_SIZE && x >= 0 && x < GRID_SIZE) board[y][x] = 1;
+                }
+            }
+
+            _blocksPlaced++;  // 배치 카운트 증가
+
+            if (isGameOver) { endGame(); return; }
+
+            clearLines();
+
+            if (!_deleteAvail) {
+                _blocksUntil--;
+                if (_blocksUntil <= 0) { _deleteAvail = true; }
+                updateDeleteStatus();
+            }
+
+            currentBlock = getNextBlock();
+            if (!canMove(currentBlock, currentBlock.x, currentBlock.y)) endGame();
+        }
+
+        function clearLines() {
+            let cleared = 0;
+            for (let y = GRID_SIZE - 1; y >= 0; y--) {
+                if (board[y].every(c => c === 1)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(GRID_SIZE).fill(0));
+                    cleared++;
+                    y++;
+                }
+            }
+            if (cleared > 0) {
+                _combo++;
+                const mult = Math.pow(2, _combo - 1);
+                for (let i = 0; i < cleared; i++) {
+                    const pts = Math.pow(2, i) * mult;
+                    showScorePopup(pts, i * 350);
+                    _score += pts;
+                }
+                document.getElementById('score').textContent = _score;
+                document.getElementById('combo').textContent = _combo;
+            } else {
+                _combo = 0;
+                document.getElementById('combo').textContent = _combo;
+            }
+        }
+
+        function rotateBlock() {
+            const nextIdx = currentBlock.configIndex + 1;
+            if (nextIdx >= currentBlock.configs.length) return;
+            const nc = currentBlock.configs[nextIdx];
+            const cb = currentBlock.y + currentBlock.height;
+            const nb = { ...currentBlock, width: nc.w, height: nc.h, configIndex: nextIdx,
+                x: currentBlock.x + Math.floor((currentBlock.width - nc.w) / 2),
+                y: cb - nc.h };
+            if (nb.x < 0) nb.x = 0;
+            if (nb.x + nb.width > GRID_SIZE) nb.x = GRID_SIZE - nb.width;
+            if (canMove(nb, nb.x, nb.y)) currentBlock = nb;
+        }
+
+        function moveBlock(dx) {
+            const nx = currentBlock.x + dx;
+            if (canMove(currentBlock, nx, currentBlock.y)) currentBlock.x = nx;
+        }
+
+        function dropBlock() {
+            const ny = currentBlock.y + 1;
+            if (canMove(currentBlock, currentBlock.x, ny)) currentBlock.y = ny;
+            else placeBlock();
+        }
+
+        function hardDrop() {
+            if (!currentBlock || !_gameRunning) return;
+            while (canMove(currentBlock, currentBlock.x, currentBlock.y + 1)) currentBlock.y++;
+            let willGameOver = false;
+            for (let dy = 0; dy < currentBlock.height; dy++) {
+                if (currentBlock.y + dy < 0) { willGameOver = true; break; }
+            }
+            if (willGameOver) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBoard(); drawBlock();
+                setTimeout(() => placeBlock(), 300);
+            } else placeBlock();
+        }
+
+        function deleteCurrentBlock() {
+            if (!_deleteAvail || !_gameRunning) return;
+            _deleteAvail = false;
+            _blocksUntil = 5;
+            updateDeleteStatus();
+            currentBlock = getNextBlock();
+        }
+
+        function updateDeleteStatus() {
+            const statusEl = document.getElementById('deleteStatus');
+            const btnEl    = document.getElementById('deleteBtn');
+            const mobileEl = document.getElementById('mobileDelete');
+            if (_deleteAvail) {
+                statusEl.textContent = '사용 가능';
+                statusEl.style.color = '#2ecc71';
+                btnEl.classList.remove('disabled');
+                if (mobileEl) mobileEl.classList.remove('disabled');
+            } else {
+                statusEl.textContent = `${_blocksUntil}블록 후 사용 가능`;
+                statusEl.style.color = '#e74c3c';
+                btnEl.classList.add('disabled');
+                if (mobileEl) mobileEl.classList.add('disabled');
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (!_gameRunning) return;
+            if (timestamp - lastDropTime > (fastDrop ? 70 : dropInterval)) {
+                dropBlock();
+                lastDropTime = timestamp;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBoard();
+            drawBlock();
+            requestAnimationFrame(gameLoop);
+        }
+
+        async function submitScore(score, blocksPlaced, playTime) {
+            const statusEl = document.getElementById('submitStatus');
+            statusEl.textContent = '점수 전송 중...';
+            statusEl.className = 'submit-status';
+            try {
+                await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',   // Apps Script CORS 우회 (응답 본문 읽기 불가)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        class: playerClass,
+                        name:  playerName,
+                        score: score,
+                        blocksPlaced: blocksPlaced,
+                        playTime: playTime
+                    })
+                });
+                // no-cors 모드에서는 응답을 읽을 수 없으므로 전송 완료로 처리
+                statusEl.textContent = '✅ 점수가 전송되었습니다!';
+                statusEl.className = 'submit-status success';
+            } catch(err) {
+                statusEl.textContent = '❌ 네트워크 오류로 전송 실패';
+                statusEl.className = 'submit-status error';
+            }
+        }
+
+        function endGame() {
+            _gameRunning = false;
+            const playTime = Date.now() - _gameStartTime;
+
+            document.getElementById('finalScore').textContent = _score.toLocaleString();
+            document.getElementById('gameOverInfo').textContent = `${playerClass} ${playerName}`;
+            document.getElementById('gameOver').style.display = 'flex';
+
+            // 구글 시트로 점수 전송
+            submitScore(_score, _blocksPlaced, playTime);
+        }
+
+        function resetGame() {
+            isStarting   = false;
+            board        = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+            _score        = 0;
+            _combo        = 0;
+            _deleteAvail  = true;
+            _blocksUntil  = 0;
+            _blocksPlaced = 0;
+            _gameRunning  = false;
+            fastDrop      = false;
+
+            document.getElementById('score').textContent = 0;
+            document.getElementById('combo').textContent = 0;
+            document.getElementById('submitStatus').textContent = '';
+            document.getElementById('submitStatus').className = 'submit-status';
+            updateDeleteStatus();
+            document.getElementById('gameOver').style.display = 'none';
+        }
+
+        function showCountdown() {
+            const countdownDiv    = document.getElementById('countdown');
+            const countdownNumber = document.getElementById('countdownNumber');
+            countdownDiv.style.display = 'flex';
+            let count = 3;
+            countdownNumber.textContent = count;
+            const interval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownNumber.textContent = count;
+                    countdownNumber.style.animation = 'none';
+                    setTimeout(() => { countdownNumber.style.animation = 'countdownPulse 1s ease-in-out'; }, 10);
+                } else {
+                    clearInterval(interval);
+                    countdownDiv.style.display = 'none';
+                    startGameLoop();
+                }
+            }, 1000);
+        }
+
+        function startGameLoop() {
+            _gameRunning   = true;
+            _gameStartTime = Date.now();
+            _blocksPlaced  = 0;
+            initNextBlocks();
+            currentBlock = getNextBlock();
+            lastDropTime = 0;
+            requestAnimationFrame(gameLoop);
+        }
+
+        return {
+            // 처음 시작: 시작 화면에서 버튼 클릭
+            start: function() {
+                if (isStarting) return;
+                isStarting = true;
+                document.getElementById('startScreen').style.display = 'none';
+                showCountdown();
+            },
+            // 다시 하기: 시작 화면 없이 바로 카운트다운
+            restart: function() {
+                resetGame();
+                isStarting = true;
+                showCountdown();
+            },
+            moveLeft:    function() { if (_gameRunning) moveBlock(-1); },
+            moveRight:   function() { if (_gameRunning) moveBlock(1); },
+            rotate:      function() { if (_gameRunning) rotateBlock(); },
+            setFastDrop: function(v) { fastDrop = v; },
+            hardDrop:    function() { if (_gameRunning) hardDrop(); },
+            deleteBlock: function() { deleteCurrentBlock(); },
+            isRunning:   function() { return _gameRunning; },
+            init:        function() { initNextBlocks(); }
+        };
+    })();
+
+    // ── 게임 시작 버튼 ──
+    document.getElementById('startBtn').addEventListener('click', () => {
+        const errorEl = document.getElementById('formError');
+        playerName = document.getElementById('nameInput').value.trim();
+
+        if (!playerClass) {
+            errorEl.textContent = '반을 선택해주세요!';
+            return;
+        }
+        if (!playerName) {
+            errorEl.textContent = '이름을 입력해주세요!';
+            return;
+        }
+        errorEl.textContent = '';
+        Game.start();
+    });
+
+    // ── 다시 하기 버튼: 바로 게임 재시작 ──
+    document.getElementById('restartBtn').addEventListener('click', () => Game.restart());
+
+    // ── 블록 삭제 버튼 ──
+    document.getElementById('deleteBtn').addEventListener('click', () => Game.deleteBlock());
+
+    // ── 키보드 입력 ──
+    document.addEventListener('keydown', (e) => {
+        if (!Game.isRunning()) return;
+        switch(e.key) {
+            case 'ArrowLeft':  case 'a': case 'A': e.preventDefault(); Game.moveLeft();        break;
+            case 'ArrowRight': case 'd': case 'D': e.preventDefault(); Game.moveRight();       break;
+            case 'ArrowUp':    case 'w': case 'W': e.preventDefault(); Game.rotate();          break;
+            case 'ArrowDown':  case 's': case 'S': e.preventDefault(); Game.setFastDrop(true); break;
+            case ' ':                              e.preventDefault(); Game.hardDrop();        break;
+            case 'z': case 'Z':                    e.preventDefault(); Game.deleteBlock();     break;
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') Game.setFastDrop(false);
+    });
+
+    // ── 모바일 터치 ──
+    window.addEventListener('load', function() {
+        document.body.focus();
+        document.body.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') document.body.focus();
+        });
+
+        const mobileLeft     = document.getElementById('mobileLeft');
+        const mobileRight    = document.getElementById('mobileRight');
+        const mobileRotate   = document.getElementById('mobileRotate');
+        const mobileDown     = document.getElementById('mobileDown');
+        const mobileDelete   = document.getElementById('mobileDelete');
+        const mobileHardDrop = document.getElementById('mobileHardDrop');
+
+        if (mobileLeft) {
+            let li = null;
+            const stop = (e) => { e.preventDefault(); if(li){clearInterval(li);li=null;} };
+            mobileLeft.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (Game.isRunning()) { Game.moveLeft(); li = setInterval(()=>{if(Game.isRunning())Game.moveLeft();},100); }
+            });
+            mobileLeft.addEventListener('touchend', stop);
+            mobileLeft.addEventListener('touchcancel', stop);
+        }
+
+        if (mobileRight) {
+            let ri = null;
+            const stop = (e) => { e.preventDefault(); if(ri){clearInterval(ri);ri=null;} };
+            mobileRight.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (Game.isRunning()) { Game.moveRight(); ri = setInterval(()=>{if(Game.isRunning())Game.moveRight();},100); }
+            });
+            mobileRight.addEventListener('touchend', stop);
+            mobileRight.addEventListener('touchcancel', stop);
+        }
+
+        if (mobileRotate)
+            mobileRotate.addEventListener('touchstart', (e) => { e.preventDefault(); if(Game.isRunning()) Game.rotate(); });
+
+        if (mobileDown) {
+            const stop = (e) => { e.preventDefault(); Game.setFastDrop(false); };
+            mobileDown.addEventListener('touchstart', (e) => { e.preventDefault(); if(Game.isRunning()) Game.setFastDrop(true); });
+            mobileDown.addEventListener('touchend', stop);
+            mobileDown.addEventListener('touchcancel', stop);
+        }
+
+        if (mobileDelete)
+            mobileDelete.addEventListener('touchstart', (e) => { e.preventDefault(); if(Game.isRunning()) Game.deleteBlock(); });
+
+        if (mobileHardDrop)
+            mobileHardDrop.addEventListener('touchstart', (e) => { e.preventDefault(); if(Game.isRunning()) Game.hardDrop(); });
+    });
+
+    Game.init();
+    </script>
+</body>
+</html>
