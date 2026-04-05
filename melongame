@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>숫자 10 만들기 - 메론게임</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@700&display=swap');
+
+        body {
+            font-family: 'Nanum Gothic', sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0fff0;
+            color: #333;
+            padding: 40px 0;
+            padding-bottom: 40px;
+            box-sizing: border-box;
+            align-items: flex-start;
+        }
+
+        #game-container {
+            width: 90%;
+            max-width: 480px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            padding-bottom: 25px;
+            text-align: center;
+            position: relative;
+            height: auto;
+            min-height: fit-content;
+            overflow: visible;
+        }
+
+        @media (min-width: 769px) {
+            #game-container.normal-mode,
+            #game-container.booster-mode,
+            #game-container.practice-mode {
+                max-width: 700px;
+            }
+        }
+
+        h1 {
+            color: #32CD32;
+            margin-top: 0;
+            font-size: 1.8em;
+        }
+        p {
+            font-size: 0.9em;
+        }
+
+        #mode-select-screen {
+            padding: 20px 0;
+        }
+
+        .mode-button {
+            font-family: 'Nanum Gothic', sans-serif;
+            font-size: 1.2em;
+            padding: 15px 40px;
+            margin: 10px;
+            border: none;
+            border-radius: 10px;
+            background-color: #32CD32;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            display: block;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .mode-button:hover {
+            background-color: #228B22;
+            transform: scale(1.02);
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .info-item {
+            padding: 8px 15px;
+            border-radius: 8px;
+            background-color: #e9ecef;
+        }
+
+        #timer { color: #e74c3c; }
+        #score { color: #2980b9; }
+
+        #game-board {
+            display: grid;
+            gap: 2px;
+            border-radius: 8px;
+            background-color: #ddd;
+            padding: 3px;
+            touch-action: none;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 769px) {
+            #game-board {
+                width: fit-content;
+            }
+            #game-board .cell {
+                width: 38px;
+                height: 38px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #game-screen.practice-mode {
+                display: flex;
+                flex-direction: column;
+                margin-top: 15px;
+            }
+            #game-screen.practice-mode .info-panel {
+                order: 2;
+                margin-bottom: 0;
+                margin-top: 15px;
+            }
+            #game-screen.practice-mode #game-board {
+                order: 1;
+                margin-top: 15px;
+            }
+        }
+
+        .cell {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .cell.melon {
+            background-color: #90EE90;
+        }
+
+        .cell .melon-emoji {
+            position: absolute;
+            font-size: 1.4em;
+            opacity: 0.5;
+            z-index: 1;
+        }
+
+        .cell .number-text {
+            position: relative;
+            z-index: 2;
+        }
+
+        .cell.empty {
+            background-color: transparent;
+        }
+
+        .cell.start-selection {
+            background-color: #95a5a6 !important;
+            transform: scale(1.05);
+            box-shadow: 0 0 5px #95a5a6;
+        }
+
+        .cell.in-selection-area {
+            background-color: #bdc3c7;
+        }
+
+        .highlight-pink {
+            background-color: #ffc0cb !important;
+        }
+
+        .control-button {
+            font-family: 'Nanum Gothic', sans-serif;
+            font-size: 1em;
+            padding: 8px 20px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: #32CD32;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .control-button:hover {
+            background-color: #228B22;
+        }
+        .control-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        #game-over-screen {
+            display: none;
+            margin-top: 20px;
+        }
+        #game-over-screen h2 {
+            color: #32CD32;
+            margin-bottom: 5px;
+        }
+        #finalScore {
+            font-size: 1.5em;
+            color: #2980b9;
+        }
+
+        /* 상위 % 표시 박스 */
+        #percentile-box {
+            display: none;
+            margin: 12px auto;
+            padding: 12px 20px;
+            border-radius: 10px;
+            background-color: #f0fff0;
+            border: 2px solid #32CD32;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        #percentile-value {
+            font-size: 1.4em;
+            color: #32CD32;
+        }
+        #percentile-msg {
+            font-size: 0.85em;
+            color: #555;
+            margin-top: 4px;
+        }
+
+        #countdown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            font-size: 8em;
+            font-weight: bold;
+            color: #32CD32;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="countdown-overlay"></div>
+
+        <!-- 모드 선택 화면 -->
+        <div id="mode-select-screen">
+            <h1>🍈 메론게임</h1>
+            <p><br>1. 합이 10이 되는 숫자 조합을 찾으세요.<br><br>2. 직사각형 영역 대각선의 꼭짓점을 클릭!<br><br>3. 메론은 추가점수 4점!<br><br>4. 처음인 친구들은 연습모드를 해보세요.<br><br><br>장시간 게임으로 눈이 나빠질 수 있습니다.<br><br>충분히 휴식하고 눈을 깜빡이세요.<br><br><br></p>
+            <button id="practiceBtn" class="mode-button">연습모드</button>
+            <button id="normalBtn" class="mode-button">일반모드</button>
+            <button id="boosterBtn" class="mode-button">부스터모드</button>
+        </div>
+
+        <!-- 게임 화면 -->
+        <div id="game-screen" style="display: none;">
+            <p id="practice-hint" style="display: none; color: #e74c3c; font-weight: bold;">분홍색 박스를 보고 합이 10이 되는 조합을 찾아보세요!</p>
+            <div class="info-panel">
+                <div class="info-item">점수: <span id="score">0</span></div>
+                <div class="info-item" id="timer-container">남은 시간: <span id="timer">120</span></div>
+            </div>
+            <div id="game-board"></div>
+            <button id="gameModeSelectBtn" class="control-button" style="display: none;">모드 선택</button>
+        </div>
+
+        <!-- 게임 종료 화면 -->
+        <div id="game-over-screen">
+            <h2 id="game-over-title">🎉 게임 종료!</h2>
+            <p>최종 점수: <strong id="finalScore">0</strong></p>
+            <div id="percentile-box">
+                <div>상위 <span id="percentile-value">-</span></div>
+                <div id="percentile-msg"></div>
+            </div>
+            <button id="restartButton" class="control-button">다시 하기</button>
+            <button id="backToMenuButton" class="control-button">모드 선택</button>
+        </div>
+    </div>
+
+    <script>
+        const modeSelectScreen = document.getElementById('mode-select-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const practiceBtn = document.getElementById('practiceBtn');
+        const normalBtn = document.getElementById('normalBtn');
+        const boosterBtn = document.getElementById('boosterBtn');
+        const restartButton = document.getElementById('restartButton');
+        const backToMenuButton = document.getElementById('backToMenuButton');
+        const gameModeSelectBtn = document.getElementById('gameModeSelectBtn');
+        const practiceHint = document.getElementById('practice-hint');
+        const gameBoard = document.getElementById('game-board');
+        const timerEl = document.getElementById('timer');
+        const timerContainer = document.getElementById('timer-container');
+        const scoreEl = document.getElementById('score');
+        const finalScoreEl = document.getElementById('finalScore');
+        const countdownOverlay = document.getElementById('countdown-overlay');
+        const gameOverTitle = document.getElementById('game-over-title');
+        const percentileBox = document.getElementById('percentile-box');
+        const percentileValue = document.getElementById('percentile-value');
+        const percentileMsg = document.getElementById('percentile-msg');
+
+        const GAME_TIME_SECONDS = 120;
+        const EMPTY_VALUE = null;
+        const MELON_EMOJI = '🍈';
+
+        let currentMode = null;
+        let board = [];
+        let score = 0;
+        let timeLeft = GAME_TIME_SECONDS;
+        let timerId = null;
+        let selectionStart = null;
+        let gameActive = false;
+        let BOARD_WIDTH = 10;
+        let BOARD_HEIGHT = 17;
+        let FIXED_MELON_COUNT = 10;
+
+        // 정규분포 관련 함수
+        function erf(x) {
+            const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+            const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+            const sign = x < 0 ? -1 : 1;
+            x = Math.abs(x);
+            const t = 1 / (1 + p * x);
+            const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+            return sign * y;
+        }
+
+        function normalCDF(x, mu, sigma) {
+            return 0.5 * (1 + erf((x - mu) / (sigma * Math.sqrt(2))));
+        }
+
+        function getTopPercent(score, mu, sigma) {
+            // 상위 % = (1 - CDF) * 100
+            const pct = (1 - normalCDF(score, mu, sigma)) * 100;
+            // 0.1% ~ 99.9% 범위로 클램프
+            return Math.min(99.9, Math.max(0.1, pct));
+        }
+
+        function getPercentileMessage(pct) {
+            if (pct <= 1)  return '🏆 최상위권이에요!';
+            if (pct <= 5)  return '🥇 정말 뛰어난 실력이에요!';
+            if (pct <= 10) return '🥈 훌륭한 실력이에요!';
+            if (pct <= 30) return '🥉 평균보다 잘했어요!';
+            if (pct <= 50) return '👍 평균 수준이에요!';
+            if (pct <= 70) return '🌱 조금 더 연습해봐요!';
+            return '💪 다시 도전해봐요!';
+        }
+
+        practiceBtn.addEventListener('click', () => startGame('practice'));
+        normalBtn.addEventListener('click', () => startGame('normal'));
+        boosterBtn.addEventListener('click', () => startGame('booster'));
+        restartButton.addEventListener('click', () => startGame(currentMode));
+        backToMenuButton.addEventListener('click', backToMenu);
+        gameModeSelectBtn.addEventListener('click', backToMenu);
+        gameBoard.addEventListener('mouseover', handleMouseOver);
+        gameBoard.addEventListener('mouseout', handleMouseOut);
+        gameBoard.addEventListener('wheel', e => e.preventDefault(), { passive: false });
+        gameBoard.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
+        function backToMenu() {
+            gameOverScreen.style.display = 'none';
+            gameScreen.style.display = 'none';
+            modeSelectScreen.style.display = 'block';
+            clearInterval(timerId);
+            const gameContainer = document.getElementById('game-container');
+            gameContainer.classList.remove('practice-mode', 'normal-mode', 'booster-mode');
+        }
+
+        function startGame(mode) {
+            currentMode = mode;
+            const gameContainer = document.getElementById('game-container');
+            gameContainer.classList.remove('practice-mode', 'normal-mode', 'booster-mode');
+
+            if (mode === 'practice') {
+                BOARD_WIDTH = 8;
+                BOARD_HEIGHT = 8;
+                FIXED_MELON_COUNT = 5;
+                timerContainer.style.display = 'none';
+                practiceHint.style.display = 'block';
+                gameModeSelectBtn.style.display = 'inline-block';
+                gameOverTitle.textContent = '🎉 연습 완료!';
+                gameScreen.classList.add('practice-mode');
+                gameContainer.classList.add('practice-mode');
+            } else {
+                BOARD_WIDTH = isMobile() ? 10 : 17;
+                BOARD_HEIGHT = isMobile() ? 17 : 10;
+                FIXED_MELON_COUNT = 10;
+                timerContainer.style.display = 'block';
+                practiceHint.style.display = 'none';
+                gameModeSelectBtn.style.display = 'none';
+                gameOverTitle.textContent = '🎉 게임 종료!';
+                gameScreen.classList.remove('practice-mode');
+                gameContainer.classList.add(mode + '-mode');
+            }
+
+            gameBoard.style.gridTemplateColumns = `repeat(${BOARD_WIDTH}, 1fr)`;
+
+            modeSelectScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            percentileBox.style.display = 'none';
+            gameScreen.style.display = 'block';
+
+            document.getElementById('game-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            gameActive = false;
+            score = 0;
+            timeLeft = GAME_TIME_SECONDS;
+            selectionStart = null;
+            updateScore();
+            timerEl.textContent = timeLeft;
+            initializeBoard();
+            renderBoard();
+
+            let count = 3;
+            countdownOverlay.style.display = 'flex';
+
+            const countdown = () => {
+                if (count > 0) {
+                    countdownOverlay.textContent = count;
+                    count--;
+                    setTimeout(countdown, 1000);
+                } else {
+                    countdownOverlay.style.display = 'none';
+                    gameActive = true;
+                    checkAndResetIfStuck();
+                    clearInterval(timerId);
+                    if (currentMode !== 'practice') {
+                        timerId = setInterval(updateTimer, 1000);
+                    }
+                }
+            };
+            countdown();
+        }
+
+        function initializeBoard() {
+            const totalCells = BOARD_WIDTH * BOARD_HEIGHT;
+            const cellIndices = Array.from({ length: totalCells }, (_, i) => i);
+            for (let i = cellIndices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cellIndices[i], cellIndices[j]] = [cellIndices[j], cellIndices[i]];
+            }
+            const melonIndices = new Set(cellIndices.slice(0, FIXED_MELON_COUNT));
+            board = [];
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                const row = [];
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    const index = y * BOARD_WIDTH + x;
+                    const isMelon = melonIndices.has(index);
+                    let number;
+                    if (currentMode === 'booster') {
+                        const boosterNumbers = [4, 5, 6];
+                        number = boosterNumbers[Math.floor(Math.random() * boosterNumbers.length)];
+                    } else {
+                        number = Math.floor(Math.random() * 9) + 1;
+                    }
+                    row.push({ number, isMelon });
+                }
+                board.push(row);
+            }
+        }
+
+        function renderBoard() {
+            gameBoard.innerHTML = '';
+            let hintCells = new Set();
+            if (currentMode === 'practice') {
+                hintCells = findAllPossibleMoves();
+            }
+            board.forEach((row, y) => {
+                row.forEach((cellData, x) => {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    if (cellData === EMPTY_VALUE) {
+                        cell.classList.add('empty');
+                    } else {
+                        const numberSpan = document.createElement('span');
+                        numberSpan.classList.add('number-text');
+                        numberSpan.textContent = cellData.number;
+                        cell.appendChild(numberSpan);
+                        if (cellData.isMelon) {
+                            cell.classList.add('melon');
+                            const emojiSpan = document.createElement('span');
+                            emojiSpan.classList.add('melon-emoji');
+                            emojiSpan.textContent = MELON_EMOJI;
+                            cell.appendChild(emojiSpan);
+                        }
+                        if (currentMode === 'practice' && hintCells.has(`${y},${x}`)) {
+                            cell.classList.add('highlight-pink');
+                        }
+                    }
+                    cell.addEventListener('click', handleCellClick);
+                    gameBoard.appendChild(cell);
+                });
+            });
+        }
+
+        function handleCellClick(event) {
+            if (!gameActive) return;
+            const targetCell = event.target.closest('.cell');
+            if (!targetCell) return;
+            const x = parseInt(targetCell.dataset.x);
+            const y = parseInt(targetCell.dataset.y);
+            if (selectionStart === null) {
+                selectionStart = { x, y };
+                targetCell.classList.add('start-selection');
+            } else {
+                processSelection(selectionStart, { x, y });
+                selectionStart = null;
+                clearSelectionHighlights();
+                renderBoard();
+                if (currentMode === 'practice' && isBoardCleared()) {
+                    endGame();
+                } else {
+                    checkAndResetIfStuck();
+                }
+            }
+        }
+
+        function processSelection(start, end) {
+            const minX = Math.min(start.x, end.x);
+            const maxX = Math.max(start.x, end.x);
+            const minY = Math.min(start.y, end.y);
+            const maxY = Math.max(start.y, end.y);
+            let sum = 0;
+            let cellsInArea = [];
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    const cellData = board?.[y]?.[x];
+                    if (cellData !== EMPTY_VALUE) {
+                        cellsInArea.push({ x, y });
+                        sum += cellData.number;
+                    }
+                }
+            }
+            if (sum === 10) {
+                let pointsEarned = 0;
+                cellsInArea.forEach(pos => {
+                    const cellData = board?.[pos.y]?.[pos.x];
+                    pointsEarned += 1;
+                    if (cellData.isMelon) {
+                        pointsEarned += 4;
+                    }
+                    board[pos.y][pos.x] = EMPTY_VALUE;
+                });
+                score += pointsEarned;
+                updateScore();
+            }
+        }
+
+        function isBoardCleared() {
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    if (board[y][x] !== EMPTY_VALUE) return false;
+                }
+            }
+            return true;
+        }
+
+        function findAllPossibleMoves() {
+            const highlightedCells = new Set();
+            for (let y1 = 0; y1 < BOARD_HEIGHT; y1++) {
+                for (let x1 = 0; x1 < BOARD_WIDTH; x1++) {
+                    for (let y2 = y1; y2 < BOARD_HEIGHT; y2++) {
+                        for (let x2 = x1; x2 < BOARD_WIDTH; x2++) {
+                            let sum = 0;
+                            let hasCell = false;
+                            const cellsInRect = [];
+                            for (let y = y1; y <= y2; y++) {
+                                for (let x = x1; x <= x2; x++) {
+                                    const cellData = board?.[y]?.[x];
+                                    if (cellData !== EMPTY_VALUE) {
+                                        sum += cellData.number;
+                                        hasCell = true;
+                                        cellsInRect.push({ y, x });
+                                    }
+                                }
+                            }
+                            if (hasCell && sum === 10) {
+                                cellsInRect.forEach(cellPos => {
+                                    highlightedCells.add(`${cellPos.y},${cellPos.x}`);
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            return highlightedCells;
+        }
+
+        function isMovePossible() {
+            return findAllPossibleMoves().size > 0;
+        }
+
+        function checkAndResetIfStuck() {
+            if (!gameActive) return;
+            if (!isMovePossible()) {
+                alert("더 이상 10을 만들 수 없습니다. 보드를 섞습니다!");
+                initializeBoard();
+                renderBoard();
+                checkAndResetIfStuck();
+            }
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            timerEl.textContent = timeLeft;
+            if (timeLeft <= 0) endGame();
+        }
+
+        function updateScore() {
+            scoreEl.textContent = score;
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerId);
+            finalScoreEl.textContent = score;
+
+            // 일반/부스터 모드: 상위 % 표시
+            if (currentMode === 'normal' || currentMode === 'booster') {
+                const mu    = currentMode === 'normal' ? 120 : 180;
+                const sigma = currentMode === 'normal' ?  44 :  53;
+                const pct = getTopPercent(score, mu, sigma);
+                percentileValue.textContent = pct.toFixed(1) + '%';
+                percentileMsg.textContent = getPercentileMessage(pct);
+                percentileBox.style.display = 'block';
+            } else {
+                percentileBox.style.display = 'none';
+            }
+
+            // 일반/부스터 모드: 남은 이동 가능한 셀 표시
+            if (currentMode !== 'practice') {
+                const remainingMoves = findAllPossibleMoves();
+                document.querySelectorAll('.cell').forEach(cell => {
+                    const y = cell.dataset.y;
+                    const x = cell.dataset.x;
+                    if (remainingMoves.has(`${y},${x}`)) {
+                        cell.classList.add('highlight-pink');
+                    }
+                });
+            }
+
+            gameOverScreen.style.display = 'block';
+        }
+
+        function handleMouseOver(event) {
+            if (!gameActive || selectionStart === null || !event.target.classList.contains('cell')) return;
+            clearSelectionHighlights(true);
+            const currentX = parseInt(event.target.dataset.x);
+            const currentY = parseInt(event.target.dataset.y);
+            const minX = Math.min(selectionStart.x, currentX);
+            const maxX = Math.max(selectionStart.x, currentX);
+            const minY = Math.min(selectionStart.y, currentY);
+            const maxY = Math.max(selectionStart.y, currentY);
+            document.querySelectorAll('.cell').forEach(cell => {
+                const x = parseInt(cell.dataset.x);
+                const y = parseInt(cell.dataset.y);
+                if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                    if (!cell.classList.contains('start-selection')) {
+                        cell.classList.add('in-selection-area');
+                    }
+                }
+            });
+        }
+
+        function handleMouseOut() {
+            if (selectionStart !== null) clearSelectionHighlights(true);
+        }
+
+        function clearSelectionHighlights(onlyArea = false) {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('in-selection-area');
+                if (!onlyArea) cell.classList.remove('start-selection');
+            });
+        }
+    </script>
+</body>
+</html>
