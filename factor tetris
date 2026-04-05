@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>약수 테트리스</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            padding: 10px;
+            touch-action: manipulation;
+        }
+        
+        .container {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+            transform: scale(0.85) translateX(10px);
+            transform-origin: center;
+        }
+        
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            min-width: 180px;
+        }
+        
+        .block-size-info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .block-size-info h3 {
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .block-size-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ade80;
+        }
+        
+        canvas {
+            border: 3px solid white;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .score {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .next-blocks {
+            margin-bottom: 20px;
+        }
+        
+        .next-blocks h3 {
+            margin-bottom: 12px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .next-block-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .delete-button-area {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .delete-button {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 auto;
+        }
+        
+        .delete-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+        
+        .delete-button:active {
+            transform: translateY(0);
+        }
+        
+        .delete-button.disabled {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .delete-button.disabled:hover {
+            transform: none;
+        }
+        
+        .delete-status {
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .game-over {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .start-screen {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .start-screen h1 {
+            font-size: 48px;
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+        }
+        
+        .start-button {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            border-radius: 50px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(74, 222, 128, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .start-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(74, 222, 128, 0.6);
+        }
+        
+        .countdown {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        
+        .countdown-number {
+            font-size: 120px;
+            font-weight: bold;
+            color: #4ade80;
+            text-shadow: 0 0 40px rgba(74, 222, 128, 0.8);
+            animation: countdownPulse 1s ease-in-out;
+        }
+        
+        @keyframes countdownPulse {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .game-over-content {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            color: #333;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .game-over-content h2 {
+            margin-bottom: 20px;
+            color: #e74c3c;
+        }
+
+        /* 상위 % 박스 */
+        .percentile-box {
+            margin: 16px 0;
+            padding: 14px 20px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #e8f8f0 0%, #d4f0e4 100%);
+            border: 2px solid #22c55e;
+        }
+
+        .percentile-label {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .percentile-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #16a34a;
+            line-height: 1.2;
+        }
+
+        .percentile-msg {
+            font-size: 13px;
+            color: #555;
+            margin-top: 5px;
+        }
+        
+        .game-over-content button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        
+        .game-over-content button:hover {
+            background: #2980b9;
+        }
+        
+        .controls {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .controls div {
+            margin: 4px 0;
+        }
+        
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+        
+        .mobile-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            border-radius: 15px;
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.1s ease;
+        }
+        
+        .mobile-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        
+        .mobile-controls-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            grid-template-rows: repeat(3, 70px);
+            gap: 10px;
+        }
+        
+        .mobile-rotate  { grid-column: 2; grid-row: 1; }
+        .mobile-left    { grid-column: 1; grid-row: 2; }
+        .mobile-down    { grid-column: 2; grid-row: 2; }
+        .mobile-right   { grid-column: 3; grid-row: 2; }
+        
+        .mobile-bottom-row {
+            grid-column: 1 / 4;
+            grid-row: 3;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .mobile-delete {
+            flex: 1;
+            width: auto;
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        
+        .mobile-delete.disabled {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            opacity: 0.6;
+        }
+        
+        .mobile-harddrop {
+            flex: 1;
+            width: auto;
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 0; overflow-x: hidden; }
+            
+            .container {
+                flex-direction: column;
+                gap: 10px;
+                transform: scale(1) translateX(0) translateY(0);
+                width: 100%;
+                padding: 10px;
+            }
+
+            .game-area {
+                width: 100%;
+                order: 2;
+                padding-bottom: 200px;
+            }
+
+            .block-size-info { padding: 10px; margin-bottom: 0; }
+
+            .top-info-wrapper {
+                display: flex;
+                gap: 10px;
+                width: 100%;
+                max-width: 360px;
+                margin: 0 auto 10px auto;
+            }
+
+            .top-info-wrapper .block-size-info { flex: 0.55; min-width: 0; }
+            .top-info-wrapper .info-panel { flex: 1; min-width: 0; margin: 0; }
+            
+            .block-size-info h3 { font-size: 12px; }
+            .block-size-display { font-size: 18px; }
+            
+            .canvas {
+                width: 100% !important;
+                height: auto !important;
+                max-width: 360px;
+                border: 2px solid white;
+            }
+            
+            .score { font-size: 20px; margin-top: 10px; }
+            .score div { font-size: 14px !important; }
+            
+            .info-panel {
+                order: 1;
+                width: 100%;
+                max-height: 63px;
+                margin: 0 auto;
+                padding: 5px;
+            }
+            
+            .next-blocks { margin-bottom: 5px; }
+            .next-blocks h3 { font-size: 12px; margin-bottom: 6px; }
+
+            #nextBlocksList {
+                display: flex;
+                gap: 6px;
+                justify-content: center;
+            }
+
+            .next-block-item {
+                padding: 4px 10px;
+                font-size: 12px;
+                flex: 0 0 auto;
+                min-width: 40px;
+            }
+            
+            .delete-button { display: none; }
+            .delete-status { display: none; }
+            
+            .mobile-controls {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                bottom: 10px;
+            }
+            
+            .mobile-btn { width: 70px; height: 70px; font-size: 28px; }
+            .controls { display: none; }
+            
+            .start-screen h1 { font-size: 32px; padding: 0 20px; text-align: center; }
+            .start-button { padding: 15px 40px; font-size: 20px; }
+            .countdown-number { font-size: 80px; }
+            
+            .game-over-content {
+                padding: 30px 20px;
+                margin: 0 20px;
+                max-width: 90%;
+            }
+            
+            .game-over-content h2 { font-size: 24px; }
+            .game-over-content p { font-size: 18px !important; }
+        }
+
+        @media (max-width: 768px) and (max-height: 750px) {
+            body { padding: 5px; }
+            .container { gap: 5px; padding: 5px; }
+            .game-area { padding-bottom: 180px; }
+            .top-info-wrapper { margin-bottom: 5px; max-width: 300px; }
+            .block-size-info { padding: 6px; }
+            .block-size-info h3 { font-size: 11px; margin-bottom: 4px; }
+            .block-size-display { font-size: 16px; }
+            canvas { max-width: 300px !important; border: 2px solid white; }
+            .score { font-size: 18px; margin-top: 5px; }
+            .score div { font-size: 12px !important; margin-top: 3px !important; }
+            .info-panel { padding: 4px; max-height: 55px; }
+            .next-blocks h3 { font-size: 11px; margin-bottom: 4px; }
+            .next-block-item { padding: 3px 8px; font-size: 11px; min-width: 32px; }
+            #nextBlocksList { gap: 4px; }
+            .mobile-controls { bottom: 5px; }
+            .mobile-btn { width: 55px; height: 55px; font-size: 22px; }
+            .mobile-controls-grid {
+                grid-template-columns: repeat(3, 55px);
+                grid-template-rows: repeat(3, 55px);
+                gap: 6px;
+            }
+            .mobile-bottom-row { gap: 6px; }
+        }
+
+        @media (max-width: 768px) and (max-height: 670px) {
+            .game-area { padding-bottom: 160px; }
+            .top-info-wrapper { max-width: 280px; }
+            canvas { max-width: 280px !important; }
+            .mobile-btn { width: 50px; height: 50px; font-size: 20px; }
+            .mobile-controls-grid {
+                grid-template-columns: repeat(3, 50px);
+                grid-template-rows: repeat(3, 50px);
+                gap: 5px;
+            }
+            .mobile-bottom-row { gap: 5px; }
+            .score { font-size: 16px; margin-top: 3px; }
+        }
+        
+        @media (max-width: 480px) {
+            .container { transform: scale(0.95) translateX(0) translateY(0); }
+            canvas { max-width: 320px; }
+            .info-panel { max-width: 320px; }
+            .mobile-btn { width: 60px; height: 60px; font-size: 24px; }
+            .mobile-controls-grid {
+                grid-template-columns: repeat(3, 60px);
+                grid-template-rows: repeat(3, 60px);
+                gap: 8px;
+            }
+            .mobile-bottom-row { gap: 8px; }
+            .next-block-item { padding: 5px 8px; font-size: 11px; min-width: 35px; }
+            #nextBlocksList { gap: 5px; }
+        }
+        
+        body:focus { outline: none; }
+
+        .score-popup {
+            position: fixed;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #4ade80;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.8);
+            pointer-events: none;
+            z-index: 500;
+            animation: scorePopup 0.8s ease-out forwards;
+        }
+
+        @keyframes scorePopup {
+            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50%  { opacity: 1; transform: translate(-50%, -70%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+        }
+    </style>
+</head>
+<body tabindex="0">
+    <div class="container">
+        <div class="top-info-wrapper">
+            <div class="block-size-info">
+                <h3>현재 블록 크기</h3>
+                <div class="block-size-display" id="blockSize">-</div>
+            </div>
+            
+            <div class="info-panel">
+                <div class="next-blocks">
+                    <h3>다음 블록</h3>
+                    <div id="nextBlocksList"></div>
+                </div>
+                
+                <div class="delete-button-area">
+                    <button class="delete-button" id="deleteBtn">
+                        <span style="font-size: 20px;">🗑</span>
+                        <span>블록 삭제</span>
+                    </button>
+                    <div class="delete-status" id="deleteStatus">삭제 가능</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-area">
+            <canvas id="gameCanvas" width="480" height="630"></canvas>
+            <div class="score">
+                점수: <span id="score">0</span>
+                <div style="font-size: 16px; margin-top: 5px; color: #f39c12;">콤보: <span id="combo">0</span></div>
+            </div>
+            <div class="controls">
+                <div>← → : 이동 &nbsp; ↑ : 회전</div>
+                <div>↓ : 낙하 &nbsp; Space : 고속 낙하</div>
+                <div>Z : 블록 삭제</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="start-screen" id="startScreen">
+        <h1>🎮 약수 테트리스</h1>
+        <button class="start-button" id="startBtn">게임 시작</button>
+    </div>
+    
+    <div class="countdown" id="countdown">
+        <div class="countdown-number" id="countdownNumber">3</div>
+    </div>
+    
+    <div class="game-over" id="gameOver">
+        <div class="game-over-content">
+            <h2>게임 오버!</h2>
+            <p style="font-size: 24px; margin: 16px 0;">최종 점수: <strong id="finalScore">0</strong></p>
+            <div class="percentile-box" id="percentileBox">
+                <div class="percentile-label">당신의 기록은</div>
+                <div class="percentile-value" id="percentileValue">-</div>
+                <div class="percentile-msg" id="percentileMsg"></div>
+            </div>
+            <button id="restartBtn">다시 하기</button>
+        </div>
+    </div>
+
+    <div class="mobile-controls">
+        <div class="mobile-controls-grid">
+            <div class="mobile-btn mobile-rotate"   id="mobileRotate">⇳</div>
+            <div class="mobile-btn mobile-left"     id="mobileLeft">⬅</div>
+            <div class="mobile-btn mobile-down"     id="mobileDown">⬇</div>
+            <div class="mobile-btn mobile-right"    id="mobileRight">➡</div>
+            <div class="mobile-bottom-row">
+                <div class="mobile-btn mobile-delete"   id="mobileDelete">🗑</div>
+                <div class="mobile-btn mobile-harddrop" id="mobileHardDrop">⏬</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var PCT_TABLE = [
+            [0,100],[1,99.9],[2,98.7],[4,97.6],[8,95.3],
+            [16,92.9],[32,88.2],[64,84.8],[128,78.6],[256,71.8],
+            [512,66.0],[1024,59.1],[2048,54.3],[4096,49.4],[8192,41.2],
+            [16384,28.4],[32768,16.4],[65536,3.1],[100000,1.1]
+        ];
+
+        function getTopPercent(score) {
+            if (score <= 0) return 99.9;
+            for (var i = PCT_TABLE.length - 1; i >= 0; i--) {
+                if (score >= PCT_TABLE[i][0]) {
+                    if (i === PCT_TABLE.length - 1) return PCT_TABLE[i][1];
+                    var s0 = PCT_TABLE[i][0], s1 = PCT_TABLE[i+1][0];
+                    var p0 = PCT_TABLE[i][1], p1 = PCT_TABLE[i+1][1];
+                    var ratio = (score - s0) / (s1 - s0);
+                    return Math.round((p0 + (p1 - p0) * ratio) * 10) / 10;
+                }
+            }
+            return 99.9;
+        }
+
+        function getPercentileMessage(pct) {
+            if (pct <= 1)  return '🏆 최상위권이에요!';
+            if (pct <= 5)  return '🥇 정말 뛰어난 실력이에요!';
+            if (pct <= 10) return '🥈 훌륭한 실력이에요!';
+            if (pct <= 30) return '🥉 평균보다 잘했어요!';
+            if (pct <= 50) return '👍 평균 수준이에요!';
+            if (pct <= 70) return '🌱 조금 더 연습해봐요!';
+            return '💪 다시 도전해봐요!';
+        }
+
+        // ============================================================
+        // 게임 모듈
+        // ============================================================
+        const Game = (function() {
+            let _score = 0;
+            let _combo = 0;
+            let _gameRunning = false;
+            let _deleteAvailable = true;
+            let _blocksUntilDelete = 0;
+            
+            const GRID_SIZE = 16;
+            const CELL_SIZE = 30;
+            const TOP_MARGIN = 5;
+            const VISIBLE_HEIGHT = GRID_SIZE + TOP_MARGIN;
+            
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = GRID_SIZE * CELL_SIZE;
+            canvas.height = VISIBLE_HEIGHT * CELL_SIZE;
+            
+            let board = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+            let currentBlock = null;
+            let nextBlocks = [];
+            let lastDropTime = 0;
+            let fastDrop = false;
+            let dropInterval = 1300;
+            let isStarting = false;
+            
+            const BLOCK_SIZES = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 22, 24];
+            
+            const BLOCK_CONFIGS = {
+                2:  [[2,1],[1,2]],
+                3:  [[3,1],[1,3]],
+                4:  [[4,1],[2,2],[1,4]],
+                5:  [[5,1],[1,5]],
+                6:  [[6,1],[3,2],[2,3],[1,6]],
+                7:  [[7,1],[1,7]],
+                8:  [[8,1],[4,2],[2,4],[1,8]],
+                9:  [[9,1],[3,3],[1,9]],
+                10: [[10,1],[5,2],[2,5],[1,10]],
+                12: [[12,1],[6,2],[4,3],[3,4],[2,6],[1,12]],
+                14: [[14,1],[7,2],[2,7],[1,14]],
+                15: [[15,1],[5,3],[3,5],[1,15]],
+                16: [[16,1],[8,2],[4,4],[2,8],[1,16]],
+                18: [[9,2],[6,3],[3,6],[2,9],[1,18]],
+                20: [[10,2],[5,4],[4,5],[2,10],[1,20]],
+                22: [[11,2],[2,11],[1,22]],
+                24: [[12,2],[8,3],[6,4],[4,6],[3,8],[2,12],[1,24]]
+            };
+            
+            function createBlock(size) {
+                const configs = BLOCK_CONFIGS[size].map(([w, h]) => ({ w, h }));
+                const startConfig = configs[0];
+                return {
+                    size,
+                    width: startConfig.w,
+                    height: startConfig.h,
+                    x: Math.floor((GRID_SIZE - startConfig.w) / 2),
+                    y: -TOP_MARGIN,
+                    configIndex: 0,
+                    configs
+                };
+            }
+            
+            function initNextBlocks() {
+                nextBlocks = [];
+                for (let i = 0; i < 4; i++) {
+                    nextBlocks.push(BLOCK_SIZES[Math.floor(Math.random() * BLOCK_SIZES.length)]);
+                }
+                updateNextBlocksDisplay();
+            }
+            
+            function getNextBlock() {
+                const size = nextBlocks.shift();
+                nextBlocks.push(BLOCK_SIZES[Math.floor(Math.random() * BLOCK_SIZES.length)]);
+                updateNextBlocksDisplay();
+                return createBlock(size);
+            }
+            
+            function updateNextBlocksDisplay() {
+                document.getElementById('nextBlocksList').innerHTML =
+                    nextBlocks.map(s => `<div class="next-block-item">${s}개</div>`).join('');
+            }
+            
+            function drawBoard() {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'rgba(30, 60, 114, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, TOP_MARGIN * CELL_SIZE);
+                
+                const boundaryY = TOP_MARGIN * CELL_SIZE;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(0, boundaryY);
+                ctx.lineTo(canvas.width, boundaryY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.lineWidth = 1;
+                
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        const screenY = (y + TOP_MARGIN) * CELL_SIZE;
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x * CELL_SIZE, screenY, CELL_SIZE, CELL_SIZE);
+                        if (board[y][x]) {
+                            ctx.fillStyle = '#3498db';
+                            ctx.fillRect(x * CELL_SIZE + 1, screenY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                        }
+                    }
+                }
+                
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 3;
+                for (let x = 4; x < GRID_SIZE; x += 4) {
+                    ctx.beginPath();
+                    ctx.moveTo(x * CELL_SIZE, boundaryY);
+                    ctx.lineTo(x * CELL_SIZE, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 4; y < GRID_SIZE; y += 4) {
+                    const screenY = (y + TOP_MARGIN) * CELL_SIZE;
+                    ctx.beginPath();
+                    ctx.moveTo(0, screenY);
+                    ctx.lineTo(canvas.width, screenY);
+                    ctx.stroke();
+                }
+                ctx.lineWidth = 1;
+            }
+            
+            function drawBlock() {
+                if (!currentBlock) return;
+                ctx.fillStyle = '#4ade80';
+                for (let dy = 0; dy < currentBlock.height; dy++) {
+                    for (let dx = 0; dx < currentBlock.width; dx++) {
+                        const x = currentBlock.x + dx;
+                        const y = currentBlock.y + dy;
+                        const screenY = (y + TOP_MARGIN) * CELL_SIZE;
+                        if (x >= 0 && x < GRID_SIZE && screenY >= 0 && screenY < canvas.height) {
+                            ctx.fillRect(x * CELL_SIZE + 1, screenY + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+                        }
+                    }
+                }
+                document.getElementById('blockSize').textContent =
+                    `${currentBlock.size} = ${currentBlock.width} × ${currentBlock.height}`;
+            }
+            
+            function canMove(block, newX, newY) {
+                for (let dy = 0; dy < block.height; dy++) {
+                    for (let dx = 0; dx < block.width; dx++) {
+                        const x = newX + dx;
+                        const y = newY + dy;
+                        if (x < 0 || x >= GRID_SIZE || y >= GRID_SIZE) return false;
+                        if (y >= 0 && board[y][x]) return false;
+                    }
+                }
+                return true;
+            }
+            
+            function showScorePopup(points, delay = 0) {
+                setTimeout(() => {
+                    const popup = document.createElement('div');
+                    popup.className = 'score-popup';
+                    popup.textContent = `+${points}`;
+                    const rect = canvas.getBoundingClientRect();
+                    popup.style.left = (rect.left + rect.width / 2) + 'px';
+                    popup.style.top  = (rect.top  + rect.height / 2) + 'px';
+                    document.body.appendChild(popup);
+                    setTimeout(() => popup.remove(), 800);
+                }, delay);
+            }
+            
+            function placeBlock() {
+                let isGameOver = false;
+                for (let dy = 0; dy < currentBlock.height; dy++) {
+                    for (let dx = 0; dx < currentBlock.width; dx++) {
+                        const x = currentBlock.x + dx;
+                        const y = currentBlock.y + dy;
+                        if (y < 0) isGameOver = true;
+                        if (y >= 0 && y < GRID_SIZE && x >= 0 && x < GRID_SIZE) {
+                            board[y][x] = 1;
+                        }
+                    }
+                }
+                
+                if (isGameOver) { endGame(); return; }
+                
+                clearLines();
+                
+                if (!_deleteAvailable) {
+                    _blocksUntilDelete--;
+                    if (_blocksUntilDelete <= 0) {
+                        _deleteAvailable = true;
+                    }
+                    updateDeleteStatus();
+                }
+                
+                currentBlock = getNextBlock();
+                if (!canMove(currentBlock, currentBlock.x, currentBlock.y)) {
+                    endGame();
+                }
+            }
+            
+            function clearLines() {
+                let linesClearedNow = 0;
+                for (let y = GRID_SIZE - 1; y >= 0; y--) {
+                    if (board[y].every(cell => cell === 1)) {
+                        board.splice(y, 1);
+                        board.unshift(Array(GRID_SIZE).fill(0));
+                        linesClearedNow++;
+                        y++;
+                    }
+                }
+                
+                if (linesClearedNow > 0) {
+                    _combo++;
+                    const comboMultiplier = Math.pow(2, _combo - 1);
+                    for (let i = 0; i < linesClearedNow; i++) {
+                        const lineScore = Math.pow(2, i) * comboMultiplier;
+                        showScorePopup(lineScore, i * 350);
+                        _score += lineScore;
+                    }
+                    document.getElementById('score').textContent = _score;
+                    document.getElementById('combo').textContent = _combo;
+                } else {
+                    _combo = 0;
+                    document.getElementById('combo').textContent = _combo;
+                }
+            }
+            
+            function rotateBlock() {
+                const nextConfigIndex = currentBlock.configIndex + 1;
+                if (nextConfigIndex >= currentBlock.configs.length) return;
+                
+                const nextConfig = currentBlock.configs[nextConfigIndex];
+                const currentBottom = currentBlock.y + currentBlock.height;
+                const newBlock = {
+                    ...currentBlock,
+                    width: nextConfig.w,
+                    height: nextConfig.h,
+                    configIndex: nextConfigIndex,
+                    x: currentBlock.x + Math.floor((currentBlock.width - nextConfig.w) / 2),
+                    y: currentBottom - nextConfig.h
+                };
+                if (newBlock.x < 0) newBlock.x = 0;
+                if (newBlock.x + newBlock.width > GRID_SIZE) newBlock.x = GRID_SIZE - newBlock.width;
+                if (canMove(newBlock, newBlock.x, newBlock.y)) currentBlock = newBlock;
+            }
+            
+            function moveBlock(dx) {
+                const newX = currentBlock.x + dx;
+                if (canMove(currentBlock, newX, currentBlock.y)) currentBlock.x = newX;
+            }
+            
+            function dropBlock() {
+                const newY = currentBlock.y + 1;
+                if (canMove(currentBlock, currentBlock.x, newY)) {
+                    currentBlock.y = newY;
+                } else {
+                    placeBlock();
+                }
+            }
+            
+            function hardDrop() {
+                if (!currentBlock || !_gameRunning) return;
+                while (canMove(currentBlock, currentBlock.x, currentBlock.y + 1)) {
+                    currentBlock.y++;
+                }
+                let willGameOver = false;
+                for (let dy = 0; dy < currentBlock.height; dy++) {
+                    if (currentBlock.y + dy < 0) { willGameOver = true; break; }
+                }
+                if (willGameOver) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawBoard(); drawBlock();
+                    setTimeout(() => placeBlock(), 300);
+                } else {
+                    placeBlock();
+                }
+            }
+            
+            function deleteCurrentBlock() {
+                if (!_deleteAvailable || !_gameRunning) return;
+                _deleteAvailable = false;
+                _blocksUntilDelete = 5;
+                updateDeleteStatus();
+                currentBlock = getNextBlock();
+            }
+            
+            function updateDeleteStatus() {
+                const statusEl = document.getElementById('deleteStatus');
+                const btnEl    = document.getElementById('deleteBtn');
+                const mobileEl = document.getElementById('mobileDelete');
+                if (_deleteAvailable) {
+                    statusEl.textContent = '사용 가능';
+                    statusEl.style.color = '#2ecc71';
+                    btnEl.classList.remove('disabled');
+                    if (mobileEl) mobileEl.classList.remove('disabled');
+                } else {
+                    statusEl.textContent = `${_blocksUntilDelete}블록 후 사용 가능`;
+                    statusEl.style.color = '#e74c3c';
+                    btnEl.classList.add('disabled');
+                    if (mobileEl) mobileEl.classList.add('disabled');
+                }
+            }
+            
+            function gameLoop(timestamp) {
+                if (!_gameRunning) return;
+                if (timestamp - lastDropTime > (fastDrop ? 70 : dropInterval)) {
+                    dropBlock();
+                    lastDropTime = timestamp;
+                }
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBoard();
+                drawBlock();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            function endGame() {
+                _gameRunning = false;
+
+                // 최종 점수 표시
+                document.getElementById('finalScore').textContent = _score.toLocaleString();
+
+                const pct = getTopPercent(_score);
+                document.getElementById('percentileValue').textContent = '상위 ' + pct.toFixed(1) + '%';
+                document.getElementById('percentileMsg').textContent = getPercentileMessage(pct);
+
+                document.getElementById('gameOver').style.display = 'flex';
+            }
+            
+            function resetGame() {
+                isStarting = false;
+                board = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+                _score = 0;
+                _combo = 0;
+                _deleteAvailable = true;
+                _blocksUntilDelete = 0;
+                _gameRunning = false;
+                fastDrop = false;
+                
+                document.getElementById('score').textContent = 0;
+                document.getElementById('combo').textContent = 0;
+                updateDeleteStatus();
+                document.getElementById('gameOver').style.display = 'none';
+                document.getElementById('startScreen').style.display = 'flex';
+            }
+            
+            function showCountdown() {
+                const countdownDiv = document.getElementById('countdown');
+                const countdownNumber = document.getElementById('countdownNumber');
+                countdownDiv.style.display = 'flex';
+                let count = 3;
+                countdownNumber.textContent = count;
+                const interval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownNumber.textContent = count;
+                        countdownNumber.style.animation = 'none';
+                        setTimeout(() => { countdownNumber.style.animation = 'countdownPulse 1s ease-in-out'; }, 10);
+                    } else {
+                        clearInterval(interval);
+                        countdownDiv.style.display = 'none';
+                        startGameLoop();
+                    }
+                }, 1000);
+            }
+            
+            function startGameLoop() {
+                _gameRunning = true;
+                initNextBlocks();
+                currentBlock = getNextBlock();
+                lastDropTime = 0;
+                requestAnimationFrame(gameLoop);
+            }
+            
+            return {
+                start: function() {
+                    if (isStarting) return;
+                    isStarting = true;
+                    document.getElementById('startScreen').style.display = 'none';
+                    showCountdown();
+                },
+                restart: function() { resetGame(); },
+                moveLeft:    function() { if (_gameRunning) moveBlock(-1); },
+                moveRight:   function() { if (_gameRunning) moveBlock(1); },
+                rotate:      function() { if (_gameRunning) rotateBlock(); },
+                setFastDrop: function(v) { fastDrop = v; },
+                hardDrop:    function() { if (_gameRunning) hardDrop(); },
+                deleteBlock: function() { deleteCurrentBlock(); },
+                isRunning:   function() { return _gameRunning; },
+                init: function() { initNextBlocks(); }
+            };
+        })();
+        
+        // ===== 이벤트 리스너 =====
+        document.getElementById('startBtn').addEventListener('click', () => Game.start());
+        document.getElementById('restartBtn').addEventListener('click', () => Game.restart());
+        document.getElementById('deleteBtn').addEventListener('click', () => Game.deleteBlock());
+        
+        document.addEventListener('keydown', (e) => {
+            if (!Game.isRunning()) return;
+            switch(e.key) {
+                case 'ArrowLeft':  case 'a': case 'A': e.preventDefault(); Game.moveLeft();       break;
+                case 'ArrowRight': case 'd': case 'D': e.preventDefault(); Game.moveRight();      break;
+                case 'ArrowUp':    case 'w': case 'W': e.preventDefault(); Game.rotate();         break;
+                case 'ArrowDown':  case 's': case 'S': e.preventDefault(); Game.setFastDrop(true);break;
+                case ' ':                              e.preventDefault(); Game.hardDrop();       break;
+                case 'z': case 'Z':                    e.preventDefault(); Game.deleteBlock();    break;
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') Game.setFastDrop(false);
+        });
+        
+        window.addEventListener('load', function() {
+            document.body.focus();
+            document.body.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'INPUT') document.body.focus();
+            });
+            
+            const mobileLeft     = document.getElementById('mobileLeft');
+            const mobileRight    = document.getElementById('mobileRight');
+            const mobileRotate   = document.getElementById('mobileRotate');
+            const mobileDown     = document.getElementById('mobileDown');
+            const mobileDelete   = document.getElementById('mobileDelete');
+            const mobileHardDrop = document.getElementById('mobileHardDrop');
+            
+            if (mobileLeft) {
+                let li = null;
+                const stop = (e) => { e.preventDefault(); if(li){clearInterval(li);li=null;} };
+                mobileLeft.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (Game.isRunning()) { Game.moveLeft(); li = setInterval(()=>{if(Game.isRunning())Game.moveLeft();},100); }
+                });
+                mobileLeft.addEventListener('touchend', stop);
+                mobileLeft.addEventListener('touchcancel', stop);
+            }
+            
+            if (mobileRight) {
+                let ri = null;
+                const stop = (e) => { e.preventDefault(); if(ri){clearInterval(ri);ri=null;} };
+                mobileRight.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (Game.isRunning()) { Game.moveRight(); ri = setInterval(()=>{if(Game.isRunning())Game.moveRight();},100); }
+                });
+                mobileRight.addEventListener('touchend', stop);
+                mobileRight.addEventListener('touchcancel', stop);
+            }
+            
+            if (mobileRotate) {
+                mobileRotate.addEventListener('touchstart', (e) => { e.preventDefault(); if(Game.isRunning()) Game.rotate(); });
+            }
+            
+            if (mobileDown) {
+                const stop = (e) => { e.preventDefault(); Game.setFastDrop(false); };
+                mobileDown.addEventListener('touchstart', (e) => { e.preventDefault(); if(Game.isRunning()) Game.setFastDrop(true); });
+                mobileDown.addEventListener('touchend', stop);
+                mobileDown.addEventListener('touchcancel', stop);
+            }
+            
+            if (mobileDelete) {
+                mobileDelete.addEventListener('touchstart', (e) => { e.preventDefault(); if(Game.isRunning()) Game.deleteBlock(); });
+            }
+            
+            if (mobileHardDrop) {
+                mobileHardDrop.addEventListener('touchstart', (e) => { e.preventDefault(); if(Game.isRunning()) Game.hardDrop(); });
+            }
+        });
+        
+        Game.init();
+    </script>
+</body>
+</html>
