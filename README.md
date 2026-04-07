@@ -8,7 +8,7 @@
 기능이 추가될수록 어려워집니다. 처음이면 일반코드 먼저 해보세요.
 
 # 사용법
-복사버튼: <img width="29" height="28" alt="image" src="https://github.com/user-attachments/assets/6d4a67b5-2293-4058-a823-b9b6c6a75d5d" />
+복사버튼: <img width="29" height="28" alt="image" src="https://github.com/user-attachments/assets/6d4a67b5-2293-4058-a823-b9b6c6a75d5d" /><br>
 원하는 게임을 클릭하고 우측 상단에 있는 복사 버튼을 눌러 복사하시고<br>
 AI한테 붙여넣기 한다음 '나 코딩 아무것도 몰라. 이 게임을 구글 사이트를 이용하여 학생들하고 하고싶은데 하나부터 열까지 차근차근 알려줘.'라고 하면 저보다 친절히 알려줄겁니다.<br>
 인간미 느껴지는 설명이 필요하다면 아래 내용을 읽어보세요.<br>
