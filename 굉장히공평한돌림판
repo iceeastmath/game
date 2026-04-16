@@ -1,0 +1,217 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 420px; width: 100%; }
+.screen.active { display: flex; }
+#screen1 { gap: 2rem; padding: 2rem; }
+#screen2 { gap: 0.6rem; padding: 1rem 0; }
+.title1 { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.title2 { font-size: 40px; font-weight: 500; color: var(--color-text-primary); }
+.setup-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 2rem 2.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; min-width: 300px; }
+.field-row { display: flex; align-items: center; gap: 12px; width: 100%; justify-content: center; }
+.field-row label { font-size: 14px; color: var(--color-text-secondary); white-space: nowrap; }
+.dropdown-wrap { position: relative; }
+.dropdown-btn { font-size: 15px; padding: 8px 16px; min-width: 110px; display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); color: var(--color-text-primary); }
+.dropdown-btn .arrow { font-size: 11px; color: var(--color-text-secondary); transition: transform 0.15s; }
+.dropdown-btn.open .arrow { transform: rotate(180deg); }
+.dropdown-list { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #ffffff; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); overflow-y: auto; max-height: 200px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.13); }
+.dropdown-list.open { display: block; }
+.dropdown-item { padding: 8px 14px; font-size: 14px; cursor: pointer; color: var(--color-text-primary); background: #ffffff; }
+.dropdown-item:hover { background: #f1f3f5; }
+.dropdown-item.selected { font-weight: 500; color: var(--color-text-info); }
+.wheel-wrap { position: relative; width: 440px; height: 440px; flex-shrink: 0; }
+canvas { border-radius: 50%; display: block; }
+.pointer { position: absolute; top: -4px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 13px solid transparent; border-right: 13px solid transparent; border-top: 24px solid #e03131; }
+#result { font-size: 20px; font-weight: 500; color: var(--color-text-primary); min-height: 28px; text-align: center; }
+#modeIndicator { font-size: 13px; color: var(--color-text-tertiary); min-height: 18px; letter-spacing: 1px; }
+.forced-row { display: flex; align-items: center; gap: 8px; }
+.forced-label { font-size: 13px; color: var(--color-text-secondary); }
+select { font-size: 13px; padding: 4px 6px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-secondary); }
+</style>
+
+<div id="screen1" class="screen active">
+  <h2 class="title1">굉장히 공평한 돌림판</h2>
+  <div class="setup-card">
+    <div class="field-row">
+      <label>인원</label>
+      <div class="dropdown-wrap" id="dropdownWrap">
+        <button class="dropdown-btn" id="dropdownBtn">
+          <span id="dropdownLabel">27명</span>
+          <span class="arrow">▼</span>
+        </button>
+        <div class="dropdown-list" id="dropdownList"></div>
+      </div>
+    </div>
+    <button id="createWheel" style="width:100%; padding: 10px; font-size: 15px;">룰렛 생성</button>
+  </div>
+</div>
+
+<div id="screen2" class="screen">
+  <h2 class="title2">굉장히 공평한 돌림판</h2>
+  <div class="forced-row">
+    <span class="forced-label">강제 번호</span>
+    <select id="forcedNumber"></select>
+  </div>
+  <div class="wheel-wrap">
+    <div class="pointer"></div>
+    <canvas id="wheel" width="440" height="440"></canvas>
+  </div>
+  <button id="spin" style="padding: 10px 32px; font-size: 16px;">돌리기</button>
+  <div id="result"></div>
+  <div id="modeIndicator">.</div>
+</div>
+
+<script>
+let selectedCount = 27;
+let students = [];
+let startAngle = 0;
+let arc = 0;
+let spinVelocity = 0;
+let spinning = false;
+let forceMode = true;
+let forcedIndex = 0;
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const size = canvas.width;
+const radius = size / 2;
+const colors = ["#74c0fc","#a5d8ff","#63d0b0","#9de8cb","#ffa94d","#ffc078","#da77f2","#e599f7"];
+
+const dropdownBtn = document.getElementById("dropdownBtn");
+const dropdownList = document.getElementById("dropdownList");
+
+for (let i = 20; i <= 35; i++) {
+  const item = document.createElement("div");
+  item.className = "dropdown-item" + (i === 27 ? " selected" : "");
+  item.textContent = i + "명";
+  item.dataset.value = i;
+  item.addEventListener("click", () => {
+    selectedCount = i;
+    document.getElementById("dropdownLabel").textContent = i + "명";
+    dropdownList.querySelectorAll(".dropdown-item").forEach(el => el.classList.remove("selected"));
+    item.classList.add("selected");
+    dropdownBtn.classList.remove("open");
+    dropdownList.classList.remove("open");
+  });
+  dropdownList.appendChild(item);
+}
+
+dropdownBtn.addEventListener("click", () => {
+  dropdownBtn.classList.toggle("open");
+  dropdownList.classList.toggle("open");
+});
+
+document.addEventListener("click", e => {
+  if (!document.getElementById("dropdownWrap").contains(e.target)) {
+    dropdownBtn.classList.remove("open");
+    dropdownList.classList.remove("open");
+  }
+});
+
+function drawWheel() {
+  ctx.clearRect(0, 0, size, size);
+  for (let i = 0; i < students.length; i++) {
+    const angle = startAngle + i * arc;
+    ctx.beginPath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.moveTo(radius, radius);
+    ctx.arc(radius, radius, radius, angle, angle + arc);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(radius, radius);
+    ctx.rotate(angle + arc / 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#1e3a5f";
+    ctx.font = `bold ${students.length > 28 ? 13 : 15}px sans-serif`;
+    ctx.fillText(students[i], radius - 8, 5);
+    ctx.restore();
+  }
+  ctx.beginPath();
+  ctx.arc(radius, radius, 18, 0, 2 * Math.PI);
+  ctx.fillStyle = "#fff";
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#aaa";
+  ctx.stroke();
+}
+
+function rotateWheel() {
+  spinVelocity *= 0.97;
+  if (spinVelocity < 0.002) {
+    spinning = false;
+    const finalAngle = (2 * Math.PI - startAngle + (3 * Math.PI / 2)) % (2 * Math.PI);
+    let index = Math.floor(finalAngle / arc) % students.length;
+    if (forceMode && students.length > forcedIndex && index !== forcedIndex) {
+      let targetAngle = (3 * Math.PI / 2) - (forcedIndex * arc) - arc / 2;
+      if (targetAngle < 0) targetAngle += 2 * Math.PI;
+      let from = startAngle;
+      let duration = 400;
+      let t0 = performance.now();
+      function comicAnimate(time) {
+        let t = (time - t0) / duration;
+        if (t > 1) t = 1;
+        startAngle = from + (targetAngle - from) * t;
+        drawWheel();
+        if (t < 1) { requestAnimationFrame(comicAnimate); }
+        else {
+          setTimeout(() => {
+            drawWheel();
+            document.getElementById("result").innerText = `발표자는 ${students[forcedIndex]} 입니다!`;
+          }, 300);
+        }
+      }
+      requestAnimationFrame(comicAnimate);
+    } else {
+      document.getElementById("result").innerText = `발표자는 ${students[index]} 입니다!`;
+    }
+  } else {
+    startAngle += spinVelocity;
+    startAngle %= 2 * Math.PI;
+    drawWheel();
+    requestAnimationFrame(rotateWheel);
+  }
+}
+
+document.getElementById("createWheel").addEventListener("click", () => {
+  students = Array.from({ length: selectedCount }, (_, i) => `${i + 1}번`);
+  arc = (2 * Math.PI) / students.length;
+  startAngle = 0;
+  spinVelocity = 0;
+  spinning = false;
+
+  const select = document.getElementById("forcedNumber");
+  select.innerHTML = "";
+  students.forEach((s, i) => {
+    const option = document.createElement("option");
+    option.value = i;
+    option.textContent = s;
+    if (i === forcedIndex) option.selected = true;
+    select.appendChild(option);
+  });
+
+  drawWheel();
+  document.getElementById("screen1").classList.remove("active");
+  document.getElementById("screen2").classList.add("active");
+  document.getElementById("result").innerText = "";
+  document.getElementById("modeIndicator").innerText = forceMode ? "." : ",";
+});
+
+document.getElementById("spin").addEventListener("click", () => {
+  if (spinning) return;
+  document.getElementById("result").innerText = "";
+  spinVelocity = Math.random() * 0.5 + 0.3;
+  spinning = true;
+  rotateWheel();
+});
+
+document.getElementById("forcedNumber").addEventListener("change", e => {
+  forcedIndex = parseInt(e.target.value);
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === 'f') {
+    forceMode = !forceMode;
+    document.getElementById("modeIndicator").innerText = forceMode ? "." : ",";
+  }
+});
+</script>
