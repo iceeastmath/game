@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학급 자리 배치 프로그램</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #ddd6fe 100%);
+            min-height: 100vh;
+            padding: 30px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #312e81;
+            font-size: 36px;
+            margin-bottom: 30px;
+            cursor: default;
+        }
+        
+        h1 span.secret {
+            cursor: pointer;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            background: #4f46e5;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .tab-button:not(.active) {
+            background: white;
+            color: #666;
+        }
+        
+        .tab-button:not(.active):hover {
+            background: #f3f4f6;
+        }
+        
+        .content {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-shuffle {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-shuffle:hover {
+            background: #059669;
+        }
+        
+        .btn-confirm {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-confirm:hover {
+            background: #4338ca;
+        }
+        
+        .btn-view {
+            background: #8b5cf6;
+            color: white;
+        }
+        
+        .btn-view:hover {
+            background: #7c3aed;
+        }
+        
+        .btn-view.active {
+            background: #6d28d9;
+        }
+        
+        .btn-save {
+            background: #0891b2;
+            color: white;
+        }
+        
+        .btn-save:hover {
+            background: #0e7490;
+        }
+        
+        .btn-print {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-print:hover {
+            background: #d97706;
+        }
+        
+        .seating-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .seating-row {
+            display: flex;
+            gap: 45px;
+            justify-content: center;
+        }
+        
+        .seat {
+            width: 130px;
+            height: 100px;
+            background: #dbeafe;
+            border: 3px solid #60a5fa;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .seat:hover {
+            background: #bfdbfe;
+            transform: translateY(-2px);
+        }
+        
+        .seat-number {
+            font-size: 14px;
+            color: #2563eb;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .seat-name {
+            font-size: 18px;
+            color: #1f2937;
+            font-weight: bold;
+        }
+        
+        .board-label {
+            text-align: center;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #22c55e;
+            color: white;
+            border: 4px solid #92400e;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            max-width: 830px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .board-label-bottom {
+            text-align: center;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #22c55e;
+            color: white;
+            border: 4px solid #92400e;
+            border-radius: 8px;
+            margin-top: 30px;
+            max-width: 830px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        h2 {
+            text-align: center;
+            color: #312e81;
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+        
+        .setting-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 10px;
+        }
+        
+        .setting-section h3 {
+            color: #312e81;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .input-area {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Malgun Gothic', sans-serif;
+            resize: vertical;
+        }
+        
+        .input-area:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        
+        .hint-text {
+            color: #6b7280;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .number-input {
+            width: 100px;
+            padding: 10px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .number-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .front-seat-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
+            border-radius: 10px;
+        }
+        
+        .front-seat-section h3 {
+            color: #92400e;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .history-info {
+            background: #eff6ff;
+            border: 2px solid #93c5fd;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-size: 15px;
+            color: #1e40af;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .history-info span {
+            font-weight: bold;
+        }
+
+        .history-badge {
+            background: #2563eb;
+            color: white;
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .overlap-warning {
+            background: #fef9c3;
+            border: 2px solid #fbbf24;
+            border-radius: 10px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #92400e;
+            display: none;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .history-table th {
+            background: #4f46e5;
+            color: white;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .history-table td {
+            padding: 7px 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .history-table tr:hover td {
+            background: #f3f4f6;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-export {
+            background: #0891b2;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #0e7490;
+        }
+
+        .btn-import {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .btn-import:hover {
+            background: #6d28d9;
+        }
+
+        /* 인쇄 스타일 */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                max-width: 100%;
+            }
+            
+            .tabs, .buttons, h1, h2 {
+                display: none !important;
+            }
+            
+            .content {
+                box-shadow: none;
+                padding: 20px;
+            }
+            
+            .seating-grid {
+                page-break-inside: avoid;
+            }
+            
+            .board-label-bottom {
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏫 학급 자리 배치 프로그<span class="secret" onclick="openSettings()">램</span></h1>
+        
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('arrange')">자리 바꾸기</button>
+            <button class="tab-button" onclick="switchTab('current')">이달의 자리</button>
+            <button class="tab-button" id="settings-tab-btn" onclick="switchTab('settings')" style="display: none;">⚙️ 설정</button>
+        </div>
+        
+        <div class="content">
+            <!-- 자리 바꾸기 탭 -->
+            <div id="arrange-tab" class="tab-content active">
+
+                <!-- 자리 기록 현황 -->
+                <div class="history-info" id="history-info-bar">
+                    📂 자리 기록 없음 — JSON을 불러오거나 자리를 확정하면 기록이 쌓입니다.
+                </div>
+
+                <!-- 겹침 경고 -->
+                <div class="overlap-warning" id="overlap-warning"></div>
+
+                <!-- 맨앞 자리 희망 섹션 -->
+                <div id="front-seat-input-section" class="front-seat-section" style="display: none;">
+                    <h3>📌 맨앞에 앉고싶은 번호를 입력하세요</h3>
+                    <textarea class="input-area" id="front-seat-numbers" placeholder="예: 3, 7, 12, 15" style="min-height: 60px;"></textarea>
+                    <div class="hint-text">
+                        입력한 번호의 학생들이 맨 앞줄에 우선 배치됩니다.
+                    </div>
+                </div>
+                
+                <div class="buttons">
+                    <button class="btn btn-import" onclick="importHistory()">
+                        📂 기록 불러오기
+                    </button>
+                    <button class="btn btn-shuffle" onclick="shuffleSeats()">
+                        🔀 자리 섞기
+                    </button>
+                    <button class="btn btn-confirm" onclick="confirmSeats()">
+                        ✅ 자리 확정
+                    </button>
+                    <button class="btn btn-export" onclick="exportHistory()">
+                        💾 기록 저장
+                    </button>
+                </div>
+                <input type="file" id="history-file-input" accept=".json" style="display:none;" onchange="handleHistoryFile(event)">
+                <div class="board-label">칠판</div>
+                <div id="current-seating" class="seating-grid"></div>
+            </div>
+            
+            <!-- 이달의 자리 탭 -->
+            <div id="current-tab" class="tab-content">
+                <h2>📌 확정된 자리 배치</h2>
+                <div class="buttons">
+                    <button class="btn btn-view active" id="student-view-btn" onclick="setView('student')">
+                        👨‍🎓 학생용
+                    </button>
+                    <button class="btn btn-view" id="teacher-view-btn" onclick="setView('teacher')">
+                        👨‍🏫 교탁용
+                    </button>
+                    <button class="btn btn-print" onclick="printSeating()">
+                        🖨️ 인쇄하기
+                    </button>
+                </div>
+                <div id="student-view">
+                    <div class="board-label">칠판</div>
+                    <div id="confirmed-seating-student" class="seating-grid"></div>
+                </div>
+                <div id="teacher-view" style="display: none;">
+                    <div id="confirmed-seating-teacher" class="seating-grid"></div>
+                    <div class="board-label-bottom">칠판</div>
+                </div>
+            </div>
+            
+            <!-- 설정 탭 -->
+            <div id="settings-tab" class="tab-content">
+                <h2>⚙️ 설정</h2>
+                
+                <div class="setting-section">
+                    <h3>📅 현재 월 설정</h3>
+                    <div class="input-group">
+                        <input type="month" id="current-month" class="number-input" style="width: 160px; font-size: 16px;">
+                    </div>
+                    <div class="hint-text">
+                        자리 확정 시 이 월로 기록에 저장됩니다.
+                    </div>
+                </div>
+
+                <div class="setting-section">
+                    <h3>📋 자리 기록 관리</h3>
+                    <div id="history-table-container">
+                        <p style="color:#6b7280; font-size:14px;">불러온 기록이 없습니다.</p>
+                    </div>
+                    <div class="buttons" style="margin-top: 15px; margin-bottom: 0;">
+                        <button class="btn btn-import" onclick="importHistory()">📂 JSON 불러오기</button>
+                        <button class="btn btn-export" onclick="exportHistory()">💾 JSON 저장</button>
+                        <button class="btn btn-danger" onclick="clearHistory()">🗑️ 기록 초기화</button>
+                    </div>
+                </div>
+
+                <div class="setting-section">
+                    <h3>👥 학생 인원</h3>
+                    <div class="input-group">
+                        <input type="number" id="student-count" class="number-input" min="20" max="32" value="25">
+                        <span>명 (20~32명)</span>
+                    </div>
+                    <div class="hint-text">
+                        인원을 변경하면 자리 배치가 초기화됩니다.
+                    </div>
+                </div>
+                
+                <div class="setting-section">
+                    <h3>🎯 맨앞 자리 희망 기능</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enable-front-seat" onchange="toggleFrontSeatInput()">
+                        <label for="enable-front-seat">맨앞 자리 희망 입력 칸 사용</label>
+                    </div>
+                    <div class="hint-text">
+                        체크하면 자리 바꾸기 탭에 입력 칸이 표시됩니다.
+                    </div>
+                </div>
+                
+                <div class="setting-section">
+                    <h3>🚫 껄끄러운 사이</h3>
+                    <textarea class="input-area" id="awkward-pairs" placeholder="예: 3, 5 / 7, 12 / 15, 20"></textarea>
+                    <div class="hint-text">
+                        가로/세로 인접 배치가 금지됩니다.
+                    </div>
+                </div>
+                
+                <div class="setting-section">
+                    <h3>🤝 멘토-멘티</h3>
+                    <textarea class="input-area" id="mentor-pairs" placeholder="예: 2, 8 / 10, 18 / 4, 22"></textarea>
+                    <div class="hint-text">
+                        가로/세로 인접하게 배치됩니다.
+                    </div>
+                </div>
+                
+                <div class="buttons">
+                    <button class="btn btn-save" onclick="saveSettings()">
+                        💾 설정 저장
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 기본 학생 이름 목록 (32명)
+        const defaultNames = [
+            '@@@','@@@','@@@','@@@','@@@',
+            '@@@','@@@','@@@','@@@','@@@',
+            '@@@','@@@','@@@','@@@','@@@',
+            '@@@','@@@','@@@','@@@','@@@',
+            '@@@','@@@','@@@','@@@','@@@'
+        ];
+
+        let studentCount = 25;
+        let students = [];
+        let currentSeats = [];
+        let confirmedSeats = [];
+        let awkwardPairs = [];
+        let mentorPairs = [];
+        let enableFrontSeat = false;
+
+        // 자리 기록: [{month:"2025-03", seats:[{position:0, studentId:21}, ...]}, ...]
+        // position = seats 배열의 인덱스 (0-based)
+        let seatHistory = [];
+
+        // ──────────────────────────────────────────────
+        // 초기화
+        // ──────────────────────────────────────────────
+        function initializeStudents(count) {
+            students = [];
+            for (let i = 0; i < count; i++) {
+                students.push({ id: i + 1, name: defaultNames[i] || `학생${i + 1}` });
+            }
+            currentSeats = columnFirstSeats(students, count);
+            confirmedSeats = columnFirstSeats(students, count);
+        }
+
+        function columnFirstSeats(studentList, count) {
+            const cols = 5;
+            const rows = Math.ceil(count / cols);
+            const result = new Array(count);
+            let id = 1;
+            for (let col = cols - 1; col >= 0; col--) {
+                for (let row = 0; row < rows; row++) {
+                    const pos = row * cols + col;
+                    if (pos < count && id <= count) {
+                        result[pos] = studentList[id - 1];
+                        id++;
+                    }
+                }
+            }
+            return result;
+        }
+
+        // ──────────────────────────────────────────────
+        // 자리 기록 관련
+        // ──────────────────────────────────────────────
+
+        // seats 배열 → history entry
+        function seatsToHistoryEntry(month, seatsArr) {
+            return {
+                month,
+                seats: seatsArr.map((s, pos) => ({ position: pos, studentId: s.id }))
+            };
+        }
+
+        // history에서 studentId별 이미 앉은 position Set 반환
+        // { studentId: Set<position> }
+        function buildUsedPositions() {
+            const map = {};
+            students.forEach(s => { map[s.id] = new Set(); });
+            seatHistory.forEach(entry => {
+                entry.seats.forEach(({ position, studentId }) => {
+                    if (map[studentId]) map[studentId].add(position);
+                });
+            });
+            return map;
+        }
+
+        // 현재 배치의 겹침 수 계산
+        function countOverlaps(seatsArr, usedPositions) {
+            let count = 0;
+            seatsArr.forEach((student, pos) => {
+                if (usedPositions[student.id] && usedPositions[student.id].has(pos)) count++;
+            });
+            return count;
+        }
+
+        // 겹침 경고 업데이트
+        function updateOverlapWarning(seatsArr) {
+            const warning = document.getElementById('overlap-warning');
+            if (seatHistory.length === 0) { warning.style.display = 'none'; return; }
+
+            const usedPositions = buildUsedPositions();
+            const overlaps = [];
+            seatsArr.forEach((student, pos) => {
+                if (usedPositions[student.id] && usedPositions[student.id].has(pos)) {
+                    overlaps.push(`${student.name}(${student.id}번)`);
+                }
+            });
+
+            if (overlaps.length === 0) {
+                warning.style.display = 'none';
+            } else {
+                warning.style.display = 'block';
+                warning.innerHTML = `⚠️ 이전과 같은 자리: <strong>${overlaps.join(', ')}</strong> — 더 나은 배치가 없어 불가피하게 배정되었습니다.`;
+            }
+        }
+
+        // 기록 현황 바 업데이트
+        function updateHistoryInfoBar() {
+            const bar = document.getElementById('history-info-bar');
+            if (seatHistory.length === 0) {
+                bar.innerHTML = '📂 자리 기록 없음 — JSON을 불러오거나 자리를 확정하면 기록이 쌓입니다.';
+                return;
+            }
+            const months = seatHistory.map(e => e.month).join(', ');
+            bar.innerHTML = `📂 기록된 월: <span>${months}</span>
+                <span class="history-badge">${seatHistory.length}개월치</span>
+                — 자리 섞기 시 이 기록과 겹치지 않도록 배치합니다.`;
+        }
+
+        // 설정 탭 기록 테이블 업데이트
+        function updateHistoryTable() {
+            const container = document.getElementById('history-table-container');
+            if (seatHistory.length === 0) {
+                container.innerHTML = '<p style="color:#6b7280; font-size:14px;">불러온 기록이 없습니다.</p>';
+                return;
+            }
+            let html = '<table class="history-table"><thead><tr><th>월</th><th>기록 인원</th><th>삭제</th></tr></thead><tbody>';
+            seatHistory.forEach((entry, idx) => {
+                html += `<tr>
+                    <td>${entry.month}</td>
+                    <td>${entry.seats.length}명</td>
+                    <td><button onclick="deleteHistoryEntry(${idx})" style="background:#ef4444;color:white;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;">삭제</button></td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        function deleteHistoryEntry(idx) {
+            if (!confirm(`${seatHistory[idx].month} 기록을 삭제할까요?`)) return;
+            seatHistory.splice(idx, 1);
+            updateHistoryInfoBar();
+            updateHistoryTable();
+        }
+
+        function clearHistory() {
+            if (!confirm('모든 자리 기록을 초기화할까요?')) return;
+            seatHistory = [];
+            updateHistoryInfoBar();
+            updateHistoryTable();
+            document.getElementById('overlap-warning').style.display = 'none';
+            alert('기록이 초기화되었습니다.');
+        }
+
+        // ──────────────────────────────────────────────
+        // JSON 불러오기 / 내보내기
+        // ──────────────────────────────────────────────
+        function importHistory() {
+            document.getElementById('history-file-input').click();
+        }
+
+        function handleHistoryFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.history || !Array.isArray(data.history)) {
+                        alert('올바른 자리 기록 JSON 파일이 아닙니다.');
+                        return;
+                    }
+                    seatHistory = data.history;
+                    updateHistoryInfoBar();
+                    updateHistoryTable();
+                    alert(`✅ ${seatHistory.length}개월치 자리 기록을 불러왔습니다.\n(${seatHistory.map(e=>e.month).join(', ')})`);
+                } catch(err) {
+                    alert('JSON 파일을 읽는 중 오류가 발생했습니다.');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function exportHistory() {
+            if (seatHistory.length === 0) {
+                alert('저장할 자리 기록이 없습니다.\n자리를 확정하면 기록이 생성됩니다.');
+                return;
+            }
+            const data = JSON.stringify({ history: seatHistory }, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '자리기록.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ──────────────────────────────────────────────
+        // 설정 / 로컬스토리지
+        // ──────────────────────────────────────────────
+        function toggleFrontSeatInput() {
+            enableFrontSeat = document.getElementById('enable-front-seat').checked;
+            document.getElementById('front-seat-input-section').style.display = enableFrontSeat ? 'block' : 'none';
+        }
+
+        function printSeating() { window.print(); }
+
+        function loadData() {
+            const savedCount = localStorage.getItem('studentCount');
+            if (savedCount) {
+                studentCount = parseInt(savedCount);
+                document.getElementById('student-count').value = studentCount;
+            }
+
+            initializeStudents(studentCount);
+
+            const savedConfirmedSeats = localStorage.getItem('confirmedSeats');
+            if (savedConfirmedSeats) {
+                const saved = JSON.parse(savedConfirmedSeats);
+                if (saved.length === studentCount) confirmedSeats = saved;
+            }
+
+            const savedAwkward = localStorage.getItem('awkwardPairs');
+            if (savedAwkward) {
+                awkwardPairs = JSON.parse(savedAwkward);
+                document.getElementById('awkward-pairs').value = pairsToString(awkwardPairs);
+            }
+
+            const savedMentor = localStorage.getItem('mentorPairs');
+            if (savedMentor) {
+                mentorPairs = JSON.parse(savedMentor);
+                document.getElementById('mentor-pairs').value = pairsToString(mentorPairs);
+            }
+
+            const savedEnableFrontSeat = localStorage.getItem('enableFrontSeat');
+            if (savedEnableFrontSeat === 'true') {
+                enableFrontSeat = true;
+                document.getElementById('enable-front-seat').checked = true;
+                toggleFrontSeatInput();
+            }
+
+            // 현재 월 기본값: 이번 달
+            const today = new Date();
+            const defaultMonth = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+            document.getElementById('current-month').value = defaultMonth;
+        }
+
+        function saveData() {
+            localStorage.setItem('confirmedSeats', JSON.stringify(confirmedSeats));
+            localStorage.setItem('studentCount', studentCount.toString());
+        }
+
+        function saveSettings() {
+            const newCount = parseInt(document.getElementById('student-count').value);
+            if (newCount < 20 || newCount > 32) {
+                alert('학생 인원은 20명에서 32명 사이로 설정해주세요.');
+                return;
+            }
+            if (newCount !== studentCount) {
+                if (confirm('인원을 변경하면 현재 자리 배치가 초기화됩니다. 계속하시겠습니까?')) {
+                    studentCount = newCount;
+                    initializeStudents(studentCount);
+                } else {
+                    document.getElementById('student-count').value = studentCount;
+                    return;
+                }
+            }
+
+            enableFrontSeat = document.getElementById('enable-front-seat').checked;
+            localStorage.setItem('enableFrontSeat', enableFrontSeat.toString());
+            toggleFrontSeatInput();
+
+            awkwardPairs = parsePairs(document.getElementById('awkward-pairs').value);
+            localStorage.setItem('awkwardPairs', JSON.stringify(awkwardPairs));
+
+            mentorPairs = parsePairs(document.getElementById('mentor-pairs').value);
+            localStorage.setItem('mentorPairs', JSON.stringify(mentorPairs));
+
+            localStorage.setItem('studentCount', studentCount.toString());
+
+            alert('설정이 저장되었습니다! ✅');
+            renderSeats('current-seating', currentSeats);
+            renderSeats('confirmed-seating-student', confirmedSeats);
+            renderSeats('confirmed-seating-teacher', confirmedSeats, true);
+        }
+
+        function parsePairs(text) {
+            const pairs = [];
+            text.split('/').forEach(seg => {
+                const nums = seg.match(/\d+/g);
+                if (nums && nums.length >= 2) {
+                    const id1 = parseInt(nums[0]), id2 = parseInt(nums[1]);
+                    if (id1 >= 1 && id1 <= studentCount && id2 >= 1 && id2 <= studentCount)
+                        pairs.push([id1, id2]);
+                }
+            });
+            return pairs;
+        }
+
+        function pairsToString(pairs) { return pairs.map(p => `${p[0]}, ${p[1]}`).join(' / '); }
+
+        function parseNumbers(text) {
+            const nums = text.match(/\d+/g);
+            if (!nums) return [];
+            return nums.map(n => parseInt(n)).filter(n => n >= 1 && n <= studentCount);
+        }
+
+        function openSettings() {
+            document.getElementById('settings-tab-btn').style.display = 'block';
+            switchTab('settings');
+        }
+
+        window.onload = function() {
+            loadData();
+            renderSeats('current-seating', currentSeats);
+            renderSeats('confirmed-seating-student', confirmedSeats);
+            renderSeats('confirmed-seating-teacher', confirmedSeats, true);
+            updateHistoryInfoBar();
+            updateHistoryTable();
+        };
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            if (tabName === 'arrange') {
+                document.getElementById('arrange-tab').classList.add('active');
+                document.querySelectorAll('.tab-button')[0].classList.add('active');
+            } else if (tabName === 'current') {
+                document.getElementById('current-tab').classList.add('active');
+                document.querySelectorAll('.tab-button')[1].classList.add('active');
+            } else if (tabName === 'settings') {
+                document.getElementById('settings-tab').classList.add('active');
+                document.getElementById('settings-tab-btn').classList.add('active');
+                updateHistoryTable();
+            }
+        }
+
+        function setView(viewType) {
+            const sv = document.getElementById('student-view');
+            const tv = document.getElementById('teacher-view');
+            const sb = document.getElementById('student-view-btn');
+            const tb = document.getElementById('teacher-view-btn');
+            if (viewType === 'student') {
+                sv.style.display = 'block'; tv.style.display = 'none';
+                sb.classList.add('active'); tb.classList.remove('active');
+            } else {
+                sv.style.display = 'none'; tv.style.display = 'block';
+                sb.classList.remove('active'); tb.classList.add('active');
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // 자리 섞기 (이전 자리 회피 포함)
+        // ──────────────────────────────────────────────
+        function shuffleSeats() {
+            let frontSeatNumbers = [];
+            if (enableFrontSeat) {
+                frontSeatNumbers = parseNumbers(document.getElementById('front-seat-numbers').value);
+            }
+
+            const usedPositions = buildUsedPositions(); // {studentId: Set<pos>}
+            const hasHistory = seatHistory.length > 0;
+
+            let best = null;
+            let bestOverlaps = Infinity;
+            const maxAttempts = hasHistory ? 2000 : 1000;
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const shuffled = arrangeMentorPairs(frontSeatNumbers, usedPositions, hasHistory);
+                if (!checkAwkwardConstraints(shuffled)) continue;
+
+                if (!hasHistory) { best = shuffled; break; }
+
+                const overlaps = countOverlaps(shuffled, usedPositions);
+                if (overlaps < bestOverlaps) {
+                    bestOverlaps = overlaps;
+                    best = shuffled;
+                    if (overlaps === 0) break; // 완벽한 배치
+                }
+            }
+
+            if (!best) {
+                alert('제약 조건을 만족하는 배치를 찾지 못했습니다.\n멘토-멘티와 껄끄러운 사이 설정을 확인해주세요.');
+                return;
+            }
+
+            currentSeats = best;
+            renderSeats('current-seating', currentSeats);
+            updateOverlapWarning(currentSeats);
+        }
+
+        // ──────────────────────────────────────────────
+        // 배치 생성 (멘토-멘티 + 이전자리 가중치)
+        // ──────────────────────────────────────────────
+        function arrangeMentorPairs(frontSeatNumbers = [], usedPositions = {}, useWeights = false) {
+            const result = new Array(studentCount);
+            const used = new Set();
+            const cols = 5;
+            const rows = Math.ceil(studentCount / cols);
+
+            // ① 맨앞 자리 희망 학생 배치
+            const frontStudents = students.filter(s => frontSeatNumbers.includes(s.id));
+            const frontPositions = shuffle([...Array(cols).keys()]);
+            for (let i = 0; i < Math.min(frontStudents.length, frontPositions.length); i++) {
+                result[frontPositions[i]] = frontStudents[i];
+                used.add(frontStudents[i].id);
+            }
+
+            // ② 멘토-멘티 인접 배치 (맨앞줄 제외)
+            const adjacentPositions = [];
+            for (let row = 1; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const pos = row * cols + col;
+                    if (pos >= studentCount) break;
+                    if (col < cols - 1 && pos + 1 < studentCount) adjacentPositions.push([pos, pos + 1]);
+                    if (row < rows - 1 && pos + cols < studentCount) adjacentPositions.push([pos, pos + cols]);
+                }
+            }
+            shuffle(adjacentPositions);
+
+            let posIdx = 0;
+            for (let pair of mentorPairs) {
+                if (posIdx >= adjacentPositions.length) break;
+                const s1 = students.find(s => s.id === pair[0]);
+                const s2 = students.find(s => s.id === pair[1]);
+                if (!s1 || !s2 || used.has(pair[0]) || used.has(pair[1])) continue;
+                const [p1, p2] = adjacentPositions[posIdx];
+                if (result[p1] || result[p2]) { posIdx++; continue; }
+                result[p1] = s1; result[p2] = s2;
+                used.add(pair[0]); used.add(pair[1]);
+                posIdx++;
+            }
+
+            // ③ 나머지 학생들을 이전 자리 회피 가중치로 배치
+            const remaining = students.filter(s => !used.has(s.id));
+            const emptyPositions = [];
+            for (let i = 0; i < studentCount; i++) { if (!result[i]) emptyPositions.push(i); }
+
+            if (useWeights && Object.keys(usedPositions).length > 0) {
+                weightedAssign(remaining, emptyPositions, result, usedPositions);
+            } else {
+                shuffle(remaining);
+                remaining.forEach((s, i) => { result[emptyPositions[i]] = s; });
+            }
+
+            return result;
+        }
+
+        // 이전 자리 회피 가중치 배정
+        // 각 학생에게 "앉아본 적 없는 자리"를 우선 배정하는 헝가리안식 greedy
+        function weightedAssign(studentList, positions, result, usedPositions) {
+            // 각 학생별 비용 계산: 앉아본 자리=1, 처음 자리=0
+            // 무작위 요소를 섞어 동점 시 랜덤하게
+            const shuffledStudents = shuffle([...studentList]);
+            const availablePositions = new Set(positions);
+
+            for (const student of shuffledStudents) {
+                const myUsed = usedPositions[student.id] || new Set();
+
+                // 가능한 위치들을 앉아본 적 없는 것 우선 정렬 (동점은 랜덤)
+                const candidates = [...availablePositions].sort((a, b) => {
+                    const costA = myUsed.has(a) ? 1 : 0;
+                    const costB = myUsed.has(b) ? 1 : 0;
+                    if (costA !== costB) return costA - costB;
+                    return Math.random() - 0.5;
+                });
+
+                const chosen = candidates[0];
+                result[chosen] = student;
+                availablePositions.delete(chosen);
+            }
+        }
+
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // ──────────────────────────────────────────────
+        // 제약 조건
+        // ──────────────────────────────────────────────
+        function checkAwkwardConstraints(seats) {
+            for (let pair of awkwardPairs) {
+                if (areAdjacent(seats, pair[0], pair[1])) return false;
+            }
+            return true;
+        }
+
+        function areAdjacent(seats, id1, id2) {
+            const pos1 = seats.findIndex(s => s && s.id === id1);
+            const pos2 = seats.findIndex(s => s && s.id === id2);
+            if (pos1 === -1 || pos2 === -1) return false;
+            const cols = 5;
+            const r1 = Math.floor(pos1/cols), c1 = pos1%cols;
+            const r2 = Math.floor(pos2/cols), c2 = pos2%cols;
+            return (r1===r2 && Math.abs(c1-c2)===1) || (c1===c2 && Math.abs(r1-r2)===1);
+        }
+
+        // ──────────────────────────────────────────────
+        // 자리 확정
+        // ──────────────────────────────────────────────
+        function confirmSeats() {
+            const month = document.getElementById('current-month').value;
+            if (!month) {
+                alert('설정 탭에서 현재 월을 먼저 입력해주세요.');
+                return;
+            }
+
+            // 같은 월이 이미 있으면 덮어쓸지 확인
+            const existingIdx = seatHistory.findIndex(e => e.month === month);
+            if (existingIdx !== -1) {
+                if (!confirm(`${month} 기록이 이미 있습니다. 덮어쓸까요?`)) return;
+                seatHistory.splice(existingIdx, 1);
+            }
+
+            // 현재 배치를 기록에 추가
+            seatHistory.push(seatsToHistoryEntry(month, currentSeats));
+            seatHistory.sort((a, b) => a.month.localeCompare(b.month));
+
+            confirmedSeats = [...currentSeats];
+            saveData();
+            renderSeats('confirmed-seating-student', confirmedSeats);
+            renderSeats('confirmed-seating-teacher', confirmedSeats, true);
+            updateHistoryInfoBar();
+            updateHistoryTable();
+            document.getElementById('overlap-warning').style.display = 'none';
+
+            alert(`✅ ${month} 자리 배치가 확정·저장되었습니다!\n💾 "기록 저장" 버튼으로 JSON 파일을 저장해두세요.`);
+        }
+
+        // ──────────────────────────────────────────────
+        // 렌더링
+        // ──────────────────────────────────────────────
+        function renderSeats(elementId, seats, isTeacherView = false) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            container.className = 'seating-grid';
+            const cols = 5;
+            const rows = Math.ceil(seats.length / cols);
+
+            for (let i = 0; i < rows; i++) {
+                const row = document.createElement('div');
+                row.className = 'seating-row';
+                let rowSeats;
+                if (isTeacherView) {
+                    const ri = rows - 1 - i;
+                    rowSeats = seats.slice(ri * cols, (ri + 1) * cols).reverse();
+                } else {
+                    rowSeats = seats.slice(i * cols, (i + 1) * cols);
+                }
+                rowSeats.forEach(student => {
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    seat.innerHTML = `<div class="seat-number">${student.id}번</div><div class="seat-name">${student.name}</div>`;
+                    row.appendChild(seat);
+                });
+                container.appendChild(row);
+            }
+        }
+    </script>
+</body>
+</html>
