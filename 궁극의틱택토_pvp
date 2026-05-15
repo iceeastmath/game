@@ -558,14 +558,14 @@
                             <li>내가 작은 보드에서 둔 위치가 상대방이 둬야 할 큰 보드 위치를 결정해요</li>
                             <li>작은 보드에서 3개를 연속으로 놓으면 그 보드를 차지해요</li>
                             <li>큰 보드에서 3개의 작은 보드를 연속으로 차지하면 승리!</li>
-                            <li><strong style="color: #ff6b6b">⏱ 대결에서는 45초 제한시간!</strong></li>
+                            <li><strong style="color: #ff6b6b">⏱️ 대결에서는 45초 제한시간!</strong></li>
                             <li><strong style="color: #4ecdc4">📊 무승부 시 더 많이 차지한 쪽이 승리!</strong></li>
                         </ul>
                     </div>
                 </div>
                 <div class="lobby-buttons">
                     <button class="lobby-btn lobby-btn-practice" onclick="startPractice()">🤖 연습하기</button>
-                    <button class="lobby-btn lobby-btn-battle" onclick="startMatchmaking()">⚔ 대결하기</button>
+                    <button class="lobby-btn lobby-btn-battle" onclick="startMatchmaking()">⚔️ 대결하기</button>
                 </div>
             </div>
         </div>
@@ -573,7 +573,7 @@
         <div id="matchmaking-screen" class="matchmaking-screen hidden">
             <header>
                 <h1>궁극의 틱택토</h1>
-                <p class="subtitle">⚔ 대결하기</p>
+                <p class="subtitle">⚔️ 대결하기</p>
             </header>
             <div class="matchmaking-card">
                 <div id="matchmaking-waiting">
@@ -581,7 +581,7 @@
                     <h2>상대를 찾는 중...</h2>
                     <p>잠시만 기다려주세요</p>
                     <br>
-                    <button class="btn btn-secondary" onclick="leaveLobby()">취소</button>
+                    <button class="btn btn-secondary" onclick="cancelMatchmaking()">취소</button>
                 </div>
             </div>
         </div>
@@ -622,7 +622,7 @@
 
         <div id="multiplayer-screen" class="hidden">
             <div class="game-header">
-                <span class="game-title">⚔ 대결</span>
+                <span class="game-title">⚔️ 대결</span>
             </div>
             <div class="status-bar">
                 <div class="player-indicator" id="multi-player-x">
@@ -643,7 +643,7 @@
             <div class="timer-section" id="timer-section">
                 <div class="turn-indicator" id="multi-turn-indicator">게임 시작!</div>
                 <div class="timer-display">
-                    <span class="timer-icon">⏱</span>
+                    <span class="timer-icon">⏱️</span>
                     <span class="timer-value" id="timer-value">45</span>
                     <span>초</span>
                 </div>
@@ -675,6 +675,9 @@
         const db = firebase.database();
 
         let currentMode = 'lobby';
+        // 취소 중 플래그 — 매칭 도중 게임이 생성돼도 무시하게 함
+        let isCancelling = false;
+
         let practiceState = {
             currentPlayer: 'X', activeBoard: null,
             boards: Array(9).fill(null).map(() => Array(9).fill(null)),
@@ -696,20 +699,30 @@
             document.getElementById('rules-arrow').classList.toggle('open');
         }
         function showScreen(id) {
-            ['lobby-screen','matchmaking-screen','practice-screen','multiplayer-screen'].forEach(s => 
+            ['lobby-screen','matchmaking-screen','practice-screen','multiplayer-screen'].forEach(s =>
                 document.getElementById(s).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
+
+        // ── 수정: async로 leaveLobby 완료를 기다린 후 화면 전환 ──
         async function backToLobby() {
-    if (currentMode === 'matchmaking') {
-        await leaveLobby();  // async 완료 대기
-    }
-    stopTimer();
-    clearDisconnectTimeout();
-    currentMode = 'lobby';
-    showScreen('lobby-screen');
-    document.getElementById('connection-status').classList.remove('show');
-}
+            if (currentMode === 'matchmaking') {
+                await leaveLobby();
+            }
+            stopTimer();
+            clearDisconnectTimeout();
+            currentMode = 'lobby';
+            isCancelling = false;
+            showScreen('lobby-screen');
+            document.getElementById('connection-status').classList.remove('show');
+        }
+
+        // ── 취소 버튼 전용: isCancelling 플래그를 먼저 세운 뒤 정리 ──
+        async function cancelMatchmaking() {
+            isCancelling = true;
+            await backToLobby();
+        }
+
         function startTimer() {
             stopTimer();
             multiState.timeLeft = TURN_TIME_LIMIT;
@@ -771,7 +784,7 @@
         }
         function setDifficulty(level) {
             practiceState.difficulty = level;
-            document.querySelectorAll('.difficulty-btn').forEach(b => 
+            document.querySelectorAll('.difficulty-btn').forEach(b =>
                 b.classList.toggle('active', b.dataset.level === level));
             resetPracticeGame();
         }
@@ -1007,6 +1020,7 @@
         // Multiplayer
         function startMatchmaking() {
             currentMode = 'matchmaking';
+            isCancelling = false;
             showScreen('matchmaking-screen');
             document.getElementById('connection-status').classList.add('show');
             updateConnectionStatus(false);
@@ -1046,21 +1060,32 @@
                     return data;
                 });
 
+                // 취소됐으면 아무것도 하지 않음
+                if (isCancelling) return;
+
                 if (result.committed) {
                     const snap = result.snapshot.val();
                     const mk = '_match_' + multiState.playerId;
                     if (snap && snap[mk]) {
                         await db.ref('lobby/' + mk).remove();
+                        // 취소됐으면 게임 생성 중단
+                        if (isCancelling) return;
                         await createGame(snap[mk].opponentId);
                     } else {
                         multiState.lobbyRef = db.ref(`lobby/${multiState.playerId}`);
                         multiState.lobbyRef.onDisconnect().remove();
+
+                        // gameId 리스너 등록 전에 취소 여부 재확인
+                        if (isCancelling) return;
+
                         db.ref(`players/${multiState.playerId}/gameId`).on('value', async snap => {
+                            // 콜백 안에서도 취소 여부 확인
+                            if (isCancelling) return;
                             const gid = snap.val();
                             if (gid) {
                                 const gs = await db.ref(`games/${gid}`).once('value');
                                 const gd = gs.val();
-                                if (gd) {
+                                if (gd && !isCancelling) {
                                     multiState.symbol = gd.players.X.id === multiState.playerId ? 'X' : 'O';
                                     multiState.gameId = gid;
                                     if (multiState.lobbyRef) await multiState.lobbyRef.remove();
@@ -1071,6 +1096,7 @@
                     }
                 }
             } catch (e) {
+                if (isCancelling) return;
                 console.error('매칭 오류:', e);
                 alert('매칭 중 오류가 발생했습니다.');
                 backToLobby();
@@ -1307,30 +1333,31 @@
             return {winner: null};
         }
 
+        // ── 수정된 leaveLobby: 리스너 제거 + Firebase 데이터 완전히 정리 ──
         async function leaveLobby() {
-    try {
-        // 게임ID 리스너 제거 (매칭 수신 중단)
-        db.ref(`players/${multiState.playerId}/gameId`).off();
-
-        // 로비에서 본인 항목 제거
-        if (multiState.lobbyRef) {
-            await multiState.lobbyRef.remove();
-            multiState.lobbyRef = null;
+            try {
+                // gameId 리스너 제거 (매칭 수신 즉시 중단)
+                if (multiState.playerId) {
+                    db.ref(`players/${multiState.playerId}/gameId`).off();
+                }
+                // 로비에서 본인 항목 제거
+                if (multiState.lobbyRef) {
+                    await multiState.lobbyRef.remove();
+                    multiState.lobbyRef = null;
+                }
+                // players 노드 정리
+                if (multiState.playerId) {
+                    await db.ref(`players/${multiState.playerId}`).remove();
+                }
+            } catch (e) {
+                console.error('로비 나가기 오류:', e);
+            } finally {
+                multiState.playerId = null;
+                multiState.symbol = null;
+                multiState.gameId = null;
+            }
         }
 
-        // players 노드 정리
-        await db.ref(`players/${multiState.playerId}`).remove();
-
-        // 혹시 매칭 중간 상태로 생성된 gameId도 정리
-        if (multiState.gameId) {
-            multiState.gameId = null;
-        }
-        multiState.playerId = null;
-        multiState.symbol = null;
-    } catch (e) {
-        console.error('로비 나가기 오류:', e);
-    }
-}
         function handleMultiRetry() {
             stopTimer(); clearDisconnectTimeout();
             if (multiState.gameRef) {
