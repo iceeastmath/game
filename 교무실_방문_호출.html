@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>교무실 방문 호출</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #182033;
+      --muted: #667085;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --border: #d0d5dd;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      font-size: 42px;
+      margin: 0 0 10px;
+    }
+
+    .header p {
+      font-size: 20px;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 26px;
+      box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 18px 0 8px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      font-size: 24px;
+      padding: 18px 16px;
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+
+    .purpose-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .purpose {
+      border: 2px solid var(--border);
+      background: #fff;
+      border-radius: 16px;
+      font-size: 22px;
+      padding: 18px 8px;
+      min-height: 70px;
+      cursor: pointer;
+    }
+
+    .purpose.active {
+      border-color: var(--primary);
+      background: #eff6ff;
+      color: var(--primary-dark);
+      font-weight: 800;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    button.main {
+      border: none;
+      border-radius: 18px;
+      font-size: 28px;
+      font-weight: 900;
+      padding: 22px 16px;
+      cursor: pointer;
+      color: white;
+      background: var(--primary);
+    }
+
+    button.main:active {
+      background: var(--primary-dark);
+      transform: scale(0.99);
+    }
+
+    button.secondary {
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 20px 16px;
+      cursor: pointer;
+      color: var(--text);
+      background: white;
+    }
+
+    .status {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 16px;
+      font-size: 22px;
+      font-weight: 700;
+      display: none;
+    }
+
+    .status.ok {
+      display: block;
+      color: #14532d;
+      background: #dcfce7;
+      border: 1px solid #86efac;
+    }
+
+    .status.err {
+      display: block;
+      color: #7f1d1d;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+    }
+
+    .small {
+      font-size: 16px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 14px;
+    }
+
+    details {
+      margin-top: 12px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .log {
+      max-height: 280px;
+      overflow: auto;
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .log-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 17px;
+      line-height: 1.45;
+    }
+
+    .log-item strong {
+      font-size: 19px;
+    }
+
+    .admin-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .admin-actions button {
+      font-size: 16px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      cursor: pointer;
+    }
+
+
+
+    .teacher-select {
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      background: #fff;
+      color: var(--text);
+      font-size: 26px;
+      font-weight: 800;
+      padding: 22px 16px;
+      min-height: 78px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .teacher-select.selected {
+      border-color: var(--primary);
+      background: #eff6ff;
+      color: var(--primary-dark);
+    }
+
+    .teacher-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(15, 23, 42, 0.55);
+    }
+
+    .teacher-modal.open {
+      display: flex;
+    }
+
+    .teacher-panel {
+      width: min(680px, 100%);
+      max-height: calc(100vh - 48px);
+      background: var(--card);
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    }
+
+    .teacher-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .teacher-modal-head h2 {
+      font-size: 30px;
+      margin: 0;
+    }
+
+    .teacher-close {
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      background: #fff;
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 800;
+      padding: 12px 16px;
+      cursor: pointer;
+    }
+
+    .teacher-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .teacher-group {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .teacher-group:not(:last-child) {
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .teacher-option {
+      width: 100%;
+      border: 2px solid var(--border);
+      border-radius: 18px;
+      background: #fff;
+      color: var(--text);
+      font-size: 26px;
+      font-weight: 900;
+      min-height: 53px;
+      padding: 12px 22px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .teacher-option.active {
+      border-color: var(--primary);
+      background: #eff6ff;
+      color: var(--primary-dark);
+    }
+
+    @media (max-width: 700px) {
+      .wrap {
+        padding: 18px;
+      }
+      .header h1 {
+        font-size: 32px;
+      }
+      .actions {
+        grid-template-columns: 1fr;
+      }
+      .purpose-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .teacher-modal {
+        padding: 14px;
+      }
+      .teacher-panel {
+        padding: 18px;
+        border-radius: 22px;
+      }
+      .teacher-grid {
+        gap: 14px;
+      }
+      .teacher-group {
+        gap: 8px;
+      }
+      .teacher-group:not(:last-child) {
+        padding-bottom: 14px;
+      }
+      .teacher-option {
+        font-size: 22px;
+        min-height: 48px;
+        padding: 10px 18px;
+      }
+      .teacher-modal-head h2 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="header">
+      <h1>교무실 방문 호출</h1>
+      <p>
+        찾는 선생님과 용무를 선택한 뒤 호출 버튼을 눌러주세요.<br />
+      </p>
+    </section>
+
+    <section class="card">
+      <label for="visitorName">이름</label>
+      <input id="visitorName" autocomplete="off" placeholder="예: 홍길동" />
+
+
+      <label for="teacherOpenBtn">찾는 선생님</label>
+      <button class="teacher-select" id="teacherOpenBtn" type="button">선생님 선택</button>
+      <input id="teacher" type="hidden" />
+
+      <label>용무</label>
+      <div class="purpose-grid" id="purposeGrid"></div>
+
+
+      <div class="actions">
+        <button class="main" id="callBtn">선생님 호출하기</button>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <p class="small">
+        선생님께서 안나오시면 부재중입니다. 다음에 방문해주세요.
+      </p>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>관리자 설정 / 방문 기록 보기</summary>
+
+        <div class="admin-actions">
+          <button id="testBtn">스피커 테스트</button>
+          <button id="fullscreenBtn">전체화면 켜기</button>
+          <button id="repeatBtn">마지막 호출 다시 재생</button>
+          <button id="downloadBtn">방문 기록 내려받기</button>
+          <button id="clearBtn">방문 기록 삭제</button>
+        </div>
+
+        <div class="log" id="log"></div>
+      </details>
+    </section>
+  </main>
+
+  <div class="teacher-modal" id="teacherModal" aria-hidden="true">
+    <div class="teacher-panel" role="dialog" aria-modal="true" aria-labelledby="teacherModalTitle">
+      <div class="teacher-modal-head">
+        <h2 id="teacherModalTitle">찾는 선생님 선택</h2>
+        <button class="teacher-close" id="teacherCloseBtn" type="button">닫기</button>
+      </div>
+      <div class="teacher-grid" id="teacherGrid"></div>
+    </div>
+  </div>
+
+  <script>
+    // 선생님 목록은 여기만 수정하면 됩니다.
+    const TEACHERS = [
+      "김@@ 선생님",
+      "이@@ 선생님",
+      "송@@ 선생님",
+      "김## 선생님",
+      "노@@ 선생님",
+      "장@@ 선생님",
+      "민@@ 선생님",
+      "노## 선생님",
+      "이## 선생님",
+      "문@@ 선생님",
+      "이$$ 선생님"
+    ];
+
+    // 팝업에서는 선생님 버튼을 3명 / 5명 / 3명으로 나누어 보여줍니다.
+    const TEACHER_GROUP_SIZES = [3, 5, 3];
+
+    const PURPOSES = ["수업 준비", "질문", "제출", "기타 요청"];
+
+    const teacherEl = document.getElementById("teacher");
+    const teacherOpenBtnEl = document.getElementById("teacherOpenBtn");
+    const teacherModalEl = document.getElementById("teacherModal");
+    const teacherGridEl = document.getElementById("teacherGrid");
+    const teacherCloseBtnEl = document.getElementById("teacherCloseBtn");
+    const purposeGridEl = document.getElementById("purposeGrid");
+    const statusEl = document.getElementById("status");
+    const logEl = document.getElementById("log");
+
+    let selectedPurpose = PURPOSES[0];
+    let lastMessage = "";
+
+    function init() {
+      renderTeacherButtons();
+
+      PURPOSES.forEach((purpose, index) => {
+        const btn = document.createElement("button");
+        btn.className = "purpose" + (index === 0 ? " active" : "");
+        btn.textContent = purpose;
+        btn.type = "button";
+        btn.addEventListener("click", () => {
+          selectedPurpose = purpose;
+          document.querySelectorAll(".purpose").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+        });
+        purposeGridEl.appendChild(btn);
+      });
+
+      document.getElementById("callBtn").addEventListener("click", handleCall);
+      teacherOpenBtnEl.addEventListener("click", openTeacherModal);
+      teacherCloseBtnEl.addEventListener("click", closeTeacherModal);
+      teacherModalEl.addEventListener("click", e => {
+        if (e.target === teacherModalEl) closeTeacherModal();
+      });
+      document.addEventListener("keydown", e => {
+        if (e.key === "Escape" && teacherModalEl.classList.contains("open")) closeTeacherModal();
+      });
+      document.getElementById("testBtn").addEventListener("click", () => speak("스피커 테스트입니다. 교무실 방문 호출 시스템이 정상 작동 중입니다.", { chime: true }));
+      document.getElementById("fullscreenBtn").addEventListener("click", requestFullscreen);
+      document.getElementById("repeatBtn").addEventListener("click", repeatLast);
+      document.getElementById("downloadBtn").addEventListener("click", downloadLogs);
+      document.getElementById("clearBtn").addEventListener("click", clearLogs);
+
+      // 음성 안내 방식은 '상세 포함'으로 고정합니다.
+
+      renderLogs();
+    }
+
+
+    function renderTeacherButtons() {
+      teacherGridEl.innerHTML = "";
+
+      let startIndex = 0;
+
+      TEACHER_GROUP_SIZES.forEach(groupSize => {
+        const group = document.createElement("div");
+        group.className = "teacher-group";
+
+        TEACHERS.slice(startIndex, startIndex + groupSize).forEach(teacher => {
+          const btn = document.createElement("button");
+          btn.className = "teacher-option" + (teacherEl.value === teacher ? " active" : "");
+          btn.type = "button";
+          btn.textContent = teacher;
+          btn.addEventListener("click", () => selectTeacher(teacher));
+          group.appendChild(btn);
+        });
+
+        if (group.children.length) {
+          teacherGridEl.appendChild(group);
+        }
+
+        startIndex += groupSize;
+      });
+
+      if (startIndex < TEACHERS.length) {
+        const group = document.createElement("div");
+        group.className = "teacher-group";
+
+        TEACHERS.slice(startIndex).forEach(teacher => {
+          const btn = document.createElement("button");
+          btn.className = "teacher-option" + (teacherEl.value === teacher ? " active" : "");
+          btn.type = "button";
+          btn.textContent = teacher;
+          btn.addEventListener("click", () => selectTeacher(teacher));
+          group.appendChild(btn);
+        });
+
+        teacherGridEl.appendChild(group);
+      }
+    }
+
+    function selectTeacher(teacher) {
+      teacherEl.value = teacher;
+      teacherOpenBtnEl.textContent = teacher;
+      teacherOpenBtnEl.classList.add("selected");
+      document.querySelectorAll(".teacher-option").forEach(btn => {
+        btn.classList.toggle("active", btn.textContent === teacher);
+      });
+      closeTeacherModal();
+    }
+
+    function openTeacherModal() {
+      renderTeacherButtons();
+      teacherModalEl.classList.add("open");
+      teacherModalEl.setAttribute("aria-hidden", "false");
+
+      const activeBtn = teacherGridEl.querySelector(".teacher-option.active") || teacherGridEl.querySelector(".teacher-option");
+      if (activeBtn) activeBtn.focus();
+    }
+
+    function closeTeacherModal() {
+      teacherModalEl.classList.remove("open");
+      teacherModalEl.setAttribute("aria-hidden", "true");
+      teacherOpenBtnEl.focus();
+    }
+
+    function handleCall() {
+      const visitorName = document.getElementById("visitorName").value.trim();
+      const teacher = teacherEl.value;
+
+      if (visitorName.length < 2) {
+        showStatus("이름은 두 글자 이상 입력해 주세요.", "err");
+        document.getElementById("visitorName").focus();
+        return;
+      }
+
+
+      if (!teacher) {
+        showStatus("찾는 선생님을 선택해 주세요.", "err");
+        teacherOpenBtnEl.focus();
+        return;
+      }
+
+      const message = makeMessage({ visitorName, teacher, purpose: selectedPurpose });
+
+      lastMessage = message;
+      // 선생님 이름이 바로 나오지 않도록, 항상 띵똥 알림음 뒤에 안내합니다.
+      speak(message, { chime: true });
+
+      const log = {
+        time: new Date().toLocaleString("ko-KR"),
+        visitorName,
+        teacher,
+        purpose: selectedPurpose
+      };
+
+      saveLog(log);
+      renderLogs();
+
+      showStatus(`${teacher} 호출이 완료되었습니다. 잠시 기다려 주세요.`, "ok");
+
+      document.getElementById("visitorName").value = "";
+      document.getElementById("visitorName").focus();
+    }
+
+    function makeMessage(data) {
+      // 상세 포함 멘트로 고정: 000 선생님, 000 학생이 00건으로 방문했습니다.
+      return `${data.teacher}, ${data.visitorName} 학생이 ${data.purpose} 건으로 방문했습니다.`;
+    }
+
+    const CHIME_TO_SPEECH_DELAY_MS = 850;
+    let speechRunId = 0;
+
+    function speak(text, options = {}) {
+      if (!("speechSynthesis" in window)) {
+        showStatus("이 브라우저는 음성 안내 기능을 지원하지 않습니다. 크롬 또는 사파리에서 다시 시도해 주세요.", "err");
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      speechRunId += 1;
+      const currentSpeechRunId = speechRunId;
+      const parts = makeSpeechParts(text);
+
+      const startSpeech = () => {
+        if (currentSpeechRunId !== speechRunId) return;
+        speakPart(parts, 0);
+      };
+
+      if (options.chime) {
+        playDingDong(() => {
+          setTimeout(startSpeech, CHIME_TO_SPEECH_DELAY_MS);
+        });
+        return;
+      }
+
+      startSpeech();
+    }
+
+    function playDingDong(afterChime) {
+      const finish = () => {
+        if (typeof afterChime === "function") afterChime();
+      };
+
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) {
+          finish();
+          return;
+        }
+
+        const audioCtx = new AudioContext();
+
+        const startChime = () => {
+          const now = audioCtx.currentTime;
+
+          // 안내 멘트 전에 주의를 끌 수 있도록 "띵-똥" 알림음을 먼저 재생합니다.
+          playTone(audioCtx, 1174.66, now, 0.32);
+          playTone(audioCtx, 880, now + 0.38, 0.38);
+
+          setTimeout(() => {
+            if (audioCtx.close) audioCtx.close().catch(() => {});
+            finish();
+          }, 900);
+        };
+
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume().then(startChime).catch(finish);
+        } else {
+          startChime();
+        }
+      } catch {
+        finish();
+      }
+    }
+
+    function playTone(audioCtx, frequency, startTime, duration) {
+      const oscillator = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+
+      gain.gain.setValueAtTime(0.0001, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.28, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+      oscillator.connect(gain);
+      gain.connect(audioCtx.destination);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration + 0.04);
+    }
+
+    function makeSpeechParts(text) {
+      // 이름을 한 글자씩 나누어 읽으면 일부 브라우저에서 짧은 음성이 잘릴 수 있어
+      // 전체 문장을 한 번에 읽도록 합니다.
+      return [{ text, pauseAfter: 0 }];
+    }
+
+    function speakPart(parts, index) {
+      if (index >= parts.length) return;
+
+      const current = parts[index];
+      const utter = new SpeechSynthesisUtterance(current.text);
+      utter.lang = "ko-KR";
+      utter.rate = 0.92;
+      utter.pitch = 1;
+      utter.volume = 1;
+
+      const voices = window.speechSynthesis.getVoices();
+      const koVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("ko"));
+      if (koVoice) utter.voice = koVoice;
+
+      const next = () => {
+        setTimeout(() => speakPart(parts, index + 1), current.pauseAfter);
+      };
+
+      utter.onend = next;
+      utter.onerror = next;
+
+      window.speechSynthesis.speak(utter);
+    }
+
+    function saveLog(log) {
+      const logs = getLogs();
+      logs.unshift(log);
+      localStorage.setItem("visitLogs", JSON.stringify(logs.slice(0, 300)));
+    }
+
+    function getLogs() {
+      try {
+        return JSON.parse(localStorage.getItem("visitLogs") || "[]");
+      } catch {
+        return [];
+      }
+    }
+
+    function renderLogs() {
+      const logs = getLogs();
+
+      if (!logs.length) {
+        logEl.innerHTML = `<div class="log-item">아직 방문 기록이 없습니다.</div>`;
+        return;
+      }
+
+      logEl.innerHTML = logs.map(log => `
+        <div class="log-item">
+          <strong>${escapeHtml(log.teacher)}</strong><br />
+          ${escapeHtml(log.time)} · ${escapeHtml(log.visitorName)}
+          · ${escapeHtml(log.purpose)}
+        </div>
+      `).join("");
+    }
+
+    function repeatLast() {
+      if (!lastMessage) {
+        showStatus("아직 다시 재생할 호출이 없습니다.", "err");
+        return;
+      }
+      speak(lastMessage, { chime: true });
+      showStatus("마지막 호출을 다시 재생했습니다.", "ok");
+    }
+
+    function downloadLogs() {
+      const logs = getLogs();
+      const header = ["시간", "이름", "선생님", "용무"];
+      const rows = logs.map(log => [
+        log.time,
+        log.visitorName,
+        log.teacher,
+        log.purpose
+      ]);
+
+      const csv = [header, ...rows]
+        .map(row => row.map(cell => `"${String(cell || "").replaceAll('"', '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "교무실_방문기록.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearLogs() {
+      const ok = confirm("방문 기록을 모두 삭제할까요?");
+      if (!ok) return;
+      localStorage.removeItem("visitLogs");
+      renderLogs();
+      showStatus("방문 기록을 삭제했습니다.", "ok");
+    }
+
+    function requestFullscreen() {
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen();
+      }
+    }
+
+    function showStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+      setTimeout(() => {
+        statusEl.className = "status";
+      }, 5000);
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = () => {};
+    }
+
+    init();
+  </script>
+</body>
+</html>
