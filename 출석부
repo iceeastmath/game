@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="출석부">
+    <title>출석부 관리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Malgun Gothic', -apple-system, sans-serif;
+            background: #f5f5f5;
+            font-size: 12px;
+        }
+        .container {
+            max-width: 100%;
+            padding: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .tab {
+            flex: 1;
+            padding: 8px 5px;
+            background: #ddd;
+            border: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .tab.active {
+            background: #4472C4;
+            color: white;
+        }
+        .controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .controls label {
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .controls select {
+            padding: 6px 8px;
+            font-size: 12px;
+            border: 2px solid #4472C4;
+            border-radius: 5px;
+            background: white;
+        }
+        .content {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .hidden {
+            display: none;
+        }
+        
+        .table-wrapper {
+            position: relative;
+            overflow: auto;
+            max-height: 85vh;
+            border: 1px solid #ccc;
+        }
+        
+        .attendance-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 12px;
+        }
+        .attendance-table th, .attendance-table td {
+            border: 1px solid #ccc;
+            padding: 3px 2px;
+            text-align: center;
+            min-width: 24px;
+            height: 24px;
+            white-space: nowrap;
+        }
+        .attendance-table thead th {
+            background: #4472C4;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .attendance-table thead tr:first-child th {
+            top: 0;
+        }
+        .attendance-table thead tr:nth-child(2) th {
+            top: 24px;
+        }
+        .attendance-table .date-header {
+            background: #D9E2F3;
+            color: #333;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        
+        .attendance-table .fixed-col {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            background: #f0f0f0;
+            font-weight: bold;
+            min-width: 28px;
+            border-right: none;
+            cursor: pointer;
+        }
+        .attendance-table .fixed-col:hover {
+            background: #e0e0e0;
+        }
+        .attendance-table .fixed-col.highlighted {
+            background: #FFD700 !important;
+            color: #000;
+        }
+        .attendance-table .fixed-col-name {
+            position: sticky;
+            left: 28px;
+            z-index: 10;
+            background: #f0f0f0;
+            font-weight: bold;
+            min-width: 50px;
+            border-left: none;
+        }
+        .attendance-table thead .fixed-col,
+        .attendance-table thead .fixed-col-name {
+            z-index: 30;
+            background: #4472C4;
+            color: white;
+        }
+        .attendance-table thead tr:first-child .fixed-col,
+        .attendance-table thead tr:first-child .fixed-col-name {
+            top: 0;
+        }
+        .attendance-table thead tr:nth-child(2) .fixed-col,
+        .attendance-table thead tr:nth-child(2) .fixed-col-name {
+            top: 24px;
+        }
+        
+        .attendance-table td.clickable {
+            cursor: pointer;
+            background: white;
+        }
+        .attendance-table td.clickable:hover {
+            background: #e8f0fe;
+        }
+        
+        .type-질병 { background: #FFCDD2 !important; }
+        .type-출석인정 { background: #C8E6C9 !important; }
+        .type-체험학습 { background: #BBDEFB !important; }
+        .type-미인정 { background: #FFF9C4 !important; }
+        
+        .report-wrapper {
+            overflow: auto;
+            max-height: 75vh;
+        }
+        .report-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+        }
+        .report-table th, .report-table td {
+            border: 1px solid #ccc;
+            padding: 5px 4px;
+            text-align: center;
+        }
+        .report-table th {
+            background: #5B9BD5;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .report-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        .report-table tr.date-separator {
+            border-top: 3px solid #4472C4;
+        }
+        .doc-cell {
+            cursor: pointer;
+            user-select: none;
+        }
+        .doc-gray {
+            color: #999;
+        }
+        .doc-black {
+            color: #000;
+            font-weight: bold;
+        }
+        
+        .name-cell {
+            cursor: pointer;
+            font-weight: bold;
+            color: #4472C4;
+            text-decoration: underline;
+        }
+        .name-cell:hover {
+            background: #e8f0fe;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 85%;
+            max-width: 300px;
+        }
+        .modal h3 {
+            margin-bottom: 12px;
+            color: #333;
+            font-size: 14px;
+        }
+        .modal p {
+            font-size: 12px;
+        }
+        .modal-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .modal-btn:hover {
+            opacity: 0.9;
+        }
+        .modal-btn.질병 { background: #FFCDD2; }
+        .modal-btn.출석인정 { background: #C8E6C9; }
+        .modal-btn.체험학습 { background: #BBDEFB; }
+        .modal-btn.미인정 { background: #FFF9C4; }
+        .modal-btn.결석 { background: #ef5350; color: white; }
+        .modal-btn.지각 { background: #FFA726; color: white; }
+        .modal-btn.조퇴 { background: #42A5F5; color: white; }
+        .modal-btn.결과 { background: #AB47BC; color: white; }
+        .modal-btn.cancel { background: #ccc; }
+        .modal-btn.delete { background: #f44336; color: white; }
+        
+        .period-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .period-btn {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #4472C4;
+            border-radius: 8px;
+            background: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .period-btn:hover {
+            background: #e8f0fe;
+        }
+        .period-btn.selected {
+            background: #4472C4;
+            color: white;
+        }
+        
+        .backup-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        .backup-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+        .backup-btn.export {
+            background: #4CAF50;
+        }
+        .backup-btn.import {
+            background: #2196F3;
+        }
+        .backup-btn:hover {
+            opacity: 0.8;
+        }
+        #file-input {
+            display: none;
+        }
+        
+        .experience-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+        }
+        .experience-table th, .experience-table td {
+            border: 1px solid #ccc;
+            padding: 8px 4px;
+            text-align: center;
+        }
+        .experience-table th {
+            background: #4472C4;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .experience-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        .experience-table td.details {
+            text-align: left;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        .exp-item {
+            margin: 2px 0;
+        }
+        .exp-absent {
+            color: #e53935;
+            font-weight: bold;
+        }
+        .exp-other {
+            color: #1976D2;
+        }
+        
+        .check-title-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            text-align: center;
+            font-family: 'Malgun Gothic', -apple-system, sans-serif;
+        }
+        .check-title-input:focus {
+            outline: none;
+            border-color: #45a049;
+        }
+        .check-titles {
+            margin-bottom: 10px;
+        }
+        .check-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 12px;
+        }
+        .check-table th, .check-table td {
+            border: 1px solid #ccc;
+            padding: 3px 2px;
+            text-align: center;
+        }
+        .check-table th {
+            background: #4472C4;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .check-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        .check-table td.name-col {
+            font-weight: bold;
+            text-align: center;
+        }
+        .check-table td.memo-col {
+            text-align: left;
+        }
+        .check-checkbox {
+            width: 15px;
+            height: 15px;
+            cursor: pointer;
+        }
+        .check-col-1 {
+            background: #E8F5E9;
+        }
+        .check-memo-input {
+            width: 100%;
+            padding: 2px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Malgun Gothic', -apple-system, sans-serif;
+        }
+        .check-memo-input:focus {
+            outline: none;
+            border-color: #4472C4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 출석부</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('attendance')">출석부</button>
+            <button class="tab" onclick="showTab('check')">체크</button>
+            <button class="tab" onclick="showTab('report')">월말정산</button>
+            <button class="tab" onclick="showTab('experience')">체험학습</button>
+        </div>
+        
+        <div id="attendance-tab" class="content">
+            <div class="controls">
+                <label>월:</label>
+                <select id="month-select" onchange="changeMonth()">
+                    <option value="2026-03">2026년 3월</option>
+                    <option value="2026-04">2026년 4월</option>
+                    <option value="2026-05">2026년 5월</option>
+                    <option value="2026-06">2026년 6월</option>
+                    <option value="2026-07">2026년 7월</option>
+                    <option value="2026-08">2026년 8월</option>
+                    <option value="2026-09">2026년 9월</option>
+                    <option value="2026-10">2026년 10월</option>
+                    <option value="2026-11">2026년 11월</option>
+                    <option value="2026-12">2026년 12월</option>
+                    <option value="2027-01">2027년 1월</option>
+                    <option value="2027-02">2027년 2월</option>
+                </select>
+                <label>주차:</label>
+                <select id="week-select" onchange="changeWeek()">
+                </select>
+            </div>
+            <div class="table-wrapper" id="attendance-content"></div>
+        </div>
+        
+        <div id="report-tab" class="content hidden">
+            <div class="controls">
+                <label>월:</label>
+                <select id="report-month-select" onchange="updateReport()">
+                    <option value="2026-03">2026년 3월</option>
+                    <option value="2026-04">2026년 4월</option>
+                    <option value="2026-05">2026년 5월</option>
+                    <option value="2026-06">2026년 6월</option>
+                    <option value="2026-07">2026년 7월</option>
+                    <option value="2026-08">2026년 8월</option>
+                    <option value="2026-09">2026년 9월</option>
+                    <option value="2026-10">2026년 10월</option>
+                    <option value="2026-11">2026년 11월</option>
+                    <option value="2026-12">2026년 12월</option>
+                    <option value="2027-01">2027년 1월</option>
+                    <option value="2027-02">2027년 2월</option>
+                </select>
+                <button class="tab active" style="padding: 6px 12px; margin-left: 10px;" id="sort-by-num" onclick="setSortOrder('number')">번호순</button>
+                <button class="tab" style="padding: 6px 12px;" id="sort-by-date" onclick="setSortOrder('date')">날짜순</button>
+            </div>
+            <div class="report-wrapper" id="report-content"></div>
+        </div>
+        
+        <div id="experience-tab" class="content hidden">
+            <h2 style="margin-bottom: 15px; font-size: 14px; color: #4472C4;">📚 체험학습 현황</h2>
+            <div class="report-wrapper" id="experience-content"></div>
+            <div class="backup-buttons" style="margin-top: 20px;">
+                <button class="backup-btn export" onclick="exportData()">💾 데이터 백업</button>
+                <button class="backup-btn import" onclick="document.getElementById('file-input').click()">📂 데이터 복원</button>
+                <input type="file" id="file-input" accept=".json" onchange="importData(event)">
+            </div>
+        </div>
+        
+        <div id="check-tab" class="content hidden">
+            <div class="check-titles">
+                <input type="text" class="check-title-input" id="check-title-1" placeholder="제목을 입력하세요" oninput="saveCheckTitle()">
+            </div>
+            <div class="report-wrapper">
+                <table class="check-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 25px;"></th>
+                            <th style="width: 60px;"></th>
+                            <th style="width: 35px; background: #4CAF50;"></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="check-table-body">
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="backup-btn" style="background: #4CAF50;" onclick="resetCheckColumn(1)">🗑️ 체크 삭제</button>
+                <button class="backup-btn" style="background: #f44336; padding: 6px 12px;" onclick="resetCheckData()">🗑️ 전부 삭제</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal-container"></div>
+
+    <script>
+        const students = [
+            {num: 1, name: "김철수", phone: "010-1234-6789", parentPhone: "010-4321-5432"},
+{num: 2, name: "이영희", phone: "010-2345-5678", parentPhone: "010-6543-7654"},
+{num: 3, name: "홍길동", phone: "010-3456-4567", parentPhone: "010-8765-9876"}
+
+        ];
+        
+        const holidays = [
+            "2026-03-01", "2026-03-02",
+            "2026-05-05", "2026-05-17",
+            "2026-06-03", "2026-06-06",
+            "2026-08-15", "2026-08-17",
+            "2026-09-24", "2026-09-25", "2026-09-26",
+            "2026-10-03", "2026-10-05", "2026-10-09",
+            "2026-12-25",
+            "2027-01-01",
+            "2027-02-08", "2027-02-09", "2027-02-10"
+        ];
+        
+        const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        const MAX_PERIOD = 6;
+        
+        let attendanceData = {};
+        let docSubmitData = {};
+        let highlightData = {};
+        let checkData = {
+            title1: '',
+            items: {}
+        };
+        let currentMonth = "2026-03";
+        let currentWeek = 1;
+        let reportSortOrder = 'number';
+        
+        function init() {
+            loadData();
+            loadSelection();
+            updateWeekOptions();
+            renderAttendance();
+        }
+        
+        function loadData() {
+            const saved = localStorage.getItem('attendanceData');
+            if (saved) attendanceData = JSON.parse(saved);
+            
+            const savedDoc = localStorage.getItem('docSubmitData');
+            if (savedDoc) docSubmitData = JSON.parse(savedDoc);
+            
+            const savedHighlight = localStorage.getItem('highlightData');
+            if (savedHighlight) {
+                highlightData = JSON.parse(savedHighlight);
+                cleanExpiredHighlights();
+            }
+            
+            const savedCheck = localStorage.getItem('checkData');
+            if (savedCheck) {
+                checkData = JSON.parse(savedCheck);
+            }
+        }
+        
+        function saveData() {
+            localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
+            localStorage.setItem('docSubmitData', JSON.stringify(docSubmitData));
+            localStorage.setItem('highlightData', JSON.stringify(highlightData));
+            localStorage.setItem('checkData', JSON.stringify(checkData));
+        }
+        
+        function cleanExpiredHighlights() {
+            const now = Date.now();
+            let changed = false;
+            Object.keys(highlightData).forEach(studentNum => {
+                if (highlightData[studentNum] < now) {
+                    delete highlightData[studentNum];
+                    changed = true;
+                }
+            });
+            if (changed) {
+                saveData();
+            }
+        }
+        
+        function loadSelection() {
+            const savedMonth = localStorage.getItem('selectedMonth');
+            const savedWeek = localStorage.getItem('selectedWeek');
+            
+            if (savedMonth) {
+                currentMonth = savedMonth;
+                document.getElementById('month-select').value = savedMonth;
+                document.getElementById('report-month-select').value = savedMonth;
+            }
+            if (savedWeek) {
+                currentWeek = parseInt(savedWeek);
+            }
+        }
+        
+        function saveSelection() {
+            localStorage.setItem('selectedMonth', currentMonth);
+            localStorage.setItem('selectedWeek', currentWeek.toString());
+        }
+        
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(c => c.classList.add('hidden'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            if (tabName === 'report') updateReport();
+            if (tabName === 'experience') updateExperience();
+            if (tabName === 'check') renderCheckTab();
+        }
+        
+        function isHoliday(dateStr) {
+            return holidays.includes(dateStr);
+        }
+        
+        function getWeeksInMonth(yearMonth) {
+            const [year, month] = yearMonth.split('-').map(Number);
+            const weeks = [];
+            let currentWeekDays = [];
+            
+            const daysInMonth = new Date(year, month, 0).getDate();
+            
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(year, month - 1, d);
+                const dayOfWeek = date.getDay();
+                const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                
+                if (dayOfWeek >= 1 && dayOfWeek <= 5 && !isHoliday(dateStr)) {
+                    currentWeekDays.push({
+                        day: d,
+                        dayOfWeek: dayOfWeek,
+                        dateStr: dateStr,
+                        dayName: dayNames[dayOfWeek]
+                    });
+                }
+                
+                if (dayOfWeek === 5 || d === daysInMonth) {
+                    if (currentWeekDays.length > 0) {
+                        weeks.push([...currentWeekDays]);
+                        currentWeekDays = [];
+                    }
+                }
+            }
+            
+            return weeks;
+        }
+        
+        function updateWeekOptions() {
+            const weeks = getWeeksInMonth(currentMonth);
+            const weekSelect = document.getElementById('week-select');
+            weekSelect.innerHTML = '';
+            
+            weeks.forEach((week, idx) => {
+                const option = document.createElement('option');
+                option.value = idx + 1;
+                const firstDay = week[0];
+                const lastDay = week[week.length - 1];
+                option.textContent = `${idx + 1}주차 (${firstDay.day}일~${lastDay.day}일)`;
+                weekSelect.appendChild(option);
+            });
+            
+            if (currentWeek > weeks.length) currentWeek = 1;
+            weekSelect.value = currentWeek;
+        }
+        
+        function changeMonth() {
+            currentMonth = document.getElementById('month-select').value;
+            currentWeek = 1;
+            updateWeekOptions();
+            renderAttendance();
+            saveSelection();
+        }
+        
+        function changeWeek() {
+            currentWeek = parseInt(document.getElementById('week-select').value);
+            renderAttendance();
+            saveSelection();
+        }
+        
+        function renderAttendance() {
+            const weeks = getWeeksInMonth(currentMonth);
+            const weekDays = weeks[currentWeek - 1] || [];
+            const [year, monthNum] = currentMonth.split('-');
+            
+            let html = '<table class="attendance-table"><thead><tr>';
+            html += '<th class="fixed-col">번호</th><th class="fixed-col-name">이름</th>';
+            
+            weekDays.forEach(dayInfo => {
+                html += `<th colspan="${MAX_PERIOD}" class="date-header">${parseInt(monthNum)}/${dayInfo.day}(${dayInfo.dayName})</th>`;
+            });
+            html += '</tr><tr><th class="fixed-col"></th><th class="fixed-col-name"></th>';
+            
+            weekDays.forEach(() => {
+                for (let p = 1; p <= MAX_PERIOD; p++) {
+                    html += `<th>${p}</th>`;
+                }
+            });
+            html += '</tr></thead><tbody>';
+            
+            students.forEach(student => {
+                const isHighlighted = highlightData[student.num] && highlightData[student.num] > Date.now();
+                const highlightClass = isHighlighted ? ' highlighted' : '';
+                html += `<tr><td class="fixed-col${highlightClass}" onclick="toggleHighlight(${student.num})">${student.num}</td><td class="fixed-col-name name-cell" onclick="showPhoneModal(${student.num})">${student.name}</td>`;
+                
+                weekDays.forEach(dayInfo => {
+                    const dateKey = dayInfo.dateStr;
+                    const studentKey = `${student.num}`;
+                    const dayData = attendanceData[dateKey]?.[studentKey];
+                    
+                    if (dayData) {
+                        const colspan = dayData.endPeriod - dayData.startPeriod + 1;
+                        const typeClass = 'type-' + dayData.type;
+                        
+                        for (let p = 1; p < dayData.startPeriod; p++) {
+                            html += `<td class="clickable" onclick="openModal(${student.num}, '${dateKey}', ${p})"></td>`;
+                        }
+                        
+                        html += `<td colspan="${colspan}" class="${typeClass} clickable" onclick="openModal(${student.num}, '${dateKey}', ${dayData.startPeriod})">${dayData.type.charAt(0)}${dayData.status.charAt(0)}</td>`;
+                        
+                        for (let p = dayData.endPeriod + 1; p <= MAX_PERIOD; p++) {
+                            html += `<td class="clickable" onclick="openModal(${student.num}, '${dateKey}', ${p})"></td>`;
+                        }
+                    } else {
+                        for (let p = 1; p <= MAX_PERIOD; p++) {
+                            html += `<td class="clickable" onclick="openModal(${student.num}, '${dateKey}', ${p})"></td>`;
+                        }
+                    }
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            document.getElementById('attendance-content').innerHTML = html;
+        }
+        
+        function showPhoneModal(studentNum) {
+            const student = students.find(s => s.num === studentNum);
+            const hasStudentPhone = student.phone && student.phone.trim() !== '';
+            const hasParentPhone = student.parentPhone && student.parentPhone.trim() !== '';
+            
+            let html = `
+                <div class="modal-overlay" onclick="closeModal(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <h3>📞 ${student.name}</h3>
+            `;
+            
+            if (!hasStudentPhone && !hasParentPhone) {
+                html += `<p style="margin: 20px 0; font-size: 13px; color: #999;">등록된 연락처가 없습니다</p>`;
+            } else {
+                if (hasStudentPhone) {
+                    const cleanPhone = student.phone.replace(/[^0-9]/g, '');
+                    html += `
+                        <p style="margin: 15px 0 5px 0; font-size: 12px; color: #666;">학생 연락처</p>
+                        <p style="margin: 0 0 10px 0; font-size: 15px; font-weight: bold;">${student.phone}</p>
+                        <a href="tel:${cleanPhone}" style="text-decoration: none;">
+                            <button class="modal-btn" style="background: #4CAF50; color: white;">📱 학생에게 전화 걸기</button>
+                        </a>
+                    `;
+                }
+                
+                if (hasParentPhone) {
+                    const cleanParentPhone = student.parentPhone.replace(/[^0-9]/g, '');
+                    html += `
+                        <p style="margin: 15px 0 5px 0; font-size: 12px; color: #666;">학부모 연락처</p>
+                        <p style="margin: 0 0 10px 0; font-size: 15px; font-weight: bold;">${student.parentPhone}</p>
+                        <a href="tel:${cleanParentPhone}" style="text-decoration: none;">
+                            <button class="modal-btn" style="background: #2196F3; color: white;">📱 학부모에게 전화 걸기</button>
+                        </a>
+                    `;
+                }
+            }
+            
+            html += `
+                        <button class="modal-btn cancel" onclick="closeModal()">닫기</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = html;
+        }
+        
+        function toggleHighlight(studentNum) {
+            const now = Date.now();
+            const expireTime = now + (12 * 60 * 60 * 1000);
+            
+            if (highlightData[studentNum] && highlightData[studentNum] > now) {
+                delete highlightData[studentNum];
+            } else {
+                highlightData[studentNum] = expireTime;
+            }
+            
+            saveData();
+            renderAttendance();
+        }
+        
+        function openModal(studentNum, dateKey, period) {
+            const existing = attendanceData[dateKey]?.[studentNum];
+            
+            if (existing) {
+                showDeleteModal(studentNum, dateKey);
+            } else {
+                showTypeModal(studentNum, dateKey, period);
+            }
+        }
+        
+        function showDeleteModal(studentNum, dateKey) {
+            const student = students.find(s => s.num === studentNum);
+            const data = attendanceData[dateKey][studentNum];
+            const html = `
+                <div class="modal-overlay" onclick="closeModal(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <h3>${student.name}</h3>
+                        <p style="margin-bottom:10px;">현재: <strong>${data.type}${data.status}</strong></p>
+                        <p style="margin-bottom:15px;">삭제할까요?</p>
+                        <button class="modal-btn delete" onclick="deleteAttendance(${studentNum}, '${dateKey}')">삭제</button>
+                        <button class="modal-btn cancel" onclick="closeModal()">취소</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = html;
+        }
+        
+        function showTypeModal(studentNum, dateKey, period) {
+            const student = students.find(s => s.num === studentNum);
+            const html = `
+                <div class="modal-overlay" onclick="closeModal(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <h3>${student.name} - 유형</h3>
+                        <button class="modal-btn 질병" onclick="selectType(${studentNum}, '${dateKey}', ${period}, '질병')">질병</button>
+                        <button class="modal-btn 출석인정" onclick="selectType(${studentNum}, '${dateKey}', ${period}, '출석인정')">출석인정</button>
+                        <button class="modal-btn 체험학습" onclick="selectType(${studentNum}, '${dateKey}', ${period}, '체험학습')">체험학습</button>
+                        <button class="modal-btn 미인정" onclick="selectType(${studentNum}, '${dateKey}', ${period}, '미인정')">미인정</button>
+                        <button class="modal-btn cancel" onclick="closeModal()">취소</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = html;
+        }
+        
+        function selectType(studentNum, dateKey, period, type) {
+            showStatusModal(studentNum, dateKey, period, type);
+        }
+        
+        function showStatusModal(studentNum, dateKey, period, type) {
+            const student = students.find(s => s.num === studentNum);
+            const html = `
+                <div class="modal-overlay" onclick="closeModal(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <h3>${student.name} - 상황</h3>
+                        <p style="margin-bottom:10px;">유형: <strong>${type}</strong></p>
+                        <button class="modal-btn 결석" onclick="selectStatus(${studentNum}, '${dateKey}', ${period}, '${type}', '결석')">결석</button>
+                        <button class="modal-btn 지각" onclick="selectStatus(${studentNum}, '${dateKey}', ${period}, '${type}', '지각')">지각</button>
+                        <button class="modal-btn 조퇴" onclick="selectStatus(${studentNum}, '${dateKey}', ${period}, '${type}', '조퇴')">조퇴</button>
+                        <button class="modal-btn 결과" onclick="selectStatus(${studentNum}, '${dateKey}', ${period}, '${type}', '결과')">결과</button>
+                        <button class="modal-btn cancel" onclick="closeModal()">취소</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = html;
+        }
+        
+        function selectStatus(studentNum, dateKey, period, type, status) {
+            if (status === '결석') {
+                saveAttendance(studentNum, dateKey, type, status, 1, MAX_PERIOD);
+            } else if (status === '지각') {
+                showLateModal(studentNum, dateKey, type);
+            } else if (status === '조퇴') {
+                showEarlyModal(studentNum, dateKey, type);
+            } else if (status === '결과') {
+                showResultModal(studentNum, dateKey, type);
+            }
+        }
+        
+        function showLateModal(studentNum, dateKey, type) {
+            const student = students.find(s => s.num === studentNum);
+            const html = `
+                <div class="modal-overlay" onclick="closeModal(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <h3>${student.name} - 지각</h3>
+                        <p>${type}지각</p>
+                        <p style="margin-top:10px;">시작: <strong>1교시</strong></p>
+                        <p style="margin-top:10px;">끝 교시 선택:</p>
+                        <div class="period-btns">
+                            ${[1,2,3,4,5,6].map(p => `<button class="period-btn" onclick="saveAttendance(${studentNum}, '${dateKey}', '${type}', '지각', 1, ${p})">${p}</button>`).join('')}
+                        </div>
+                        <button class="modal-btn cancel" onclick="closeModal()">취소</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = html;
+        }
+        
+        function showEarlyModal(studentNum, dateKey, type) {
+            const student = students.find(s => s.num === studentNum);
+            const html = `
+                <div class="modal-overlay" onclick="closeModal(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <h3>${student.name} - 조퇴</h3>
+                        <p>${type}조퇴</p>
+                        <p style="margin-top:10px;">시작 교시 선택:</p>
+                        <div class="period-btns">
+                            ${[1,2,3,4,5,6].map(p => `<button class="period-btn" onclick="saveAttendance(${studentNum}, '${dateKey}', '${type}', '조퇴', ${p}, ${MAX_PERIOD})">${p}</button>`).join('')}
+                        </div>
+                        <p style="margin-top:10px;">끝: <strong>6교시</strong></p>
+                        <button class="modal-btn cancel" onclick="closeModal()">취소</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = html;
+        }
+        
+        let resultStart = null;
+        
+        function showResultModal(studentNum, dateKey, type) {
+            resultStart = null;
+            const student = students.find(s => s.num === studentNum);
+            const html = `
+                <div class="modal-overlay" onclick="closeModal(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <h3>${student.name} - 결과</h3>
+                        <p>${type}결과</p>
+                        <p style="margin-top:10px;">시작 교시 선택:</p>
+                        <div class="period-btns" id="result-start-btns">
+                            ${[1,2,3,4,5,6].map(p => `<button class="period-btn" onclick="selectResultStart(${studentNum}, '${dateKey}', '${type}', ${p})">${p}</button>`).join('')}
+                        </div>
+                        <p style="margin-top:10px;" id="result-end-label">끝 교시: 시작을 먼저 선택하세요</p>
+                        <div class="period-btns" id="result-end-btns" style="display:none;">
+                        </div>
+                        <button class="modal-btn cancel" onclick="closeModal()">취소</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = html;
+        }
+        
+        function selectResultStart(studentNum, dateKey, type, startP) {
+            resultStart = startP;
+            
+            document.querySelectorAll('#result-start-btns .period-btn').forEach((btn, idx) => {
+                btn.classList.toggle('selected', idx + 1 === startP);
+            });
+            
+            document.getElementById('result-end-label').textContent = `끝 교시 선택 (${startP}교시 이상):`;
+            const endBtns = document.getElementById('result-end-btns');
+            endBtns.style.display = 'flex';
+            endBtns.innerHTML = [1,2,3,4,5,6].filter(p => p >= startP).map(p => 
+                `<button class="period-btn" onclick="saveAttendance(${studentNum}, '${dateKey}', '${type}', '결과', ${startP}, ${p})">${p}</button>`
+            ).join('');
+        }
+        
+        function saveAttendance(studentNum, dateKey, type, status, startPeriod, endPeriod) {
+            if (!attendanceData[dateKey]) {
+                attendanceData[dateKey] = {};
+            }
+            
+            attendanceData[dateKey][studentNum] = {
+                type: type,
+                status: status,
+                startPeriod: startPeriod,
+                endPeriod: endPeriod
+            };
+            
+            saveData();
+            closeModal();
+            renderAttendance();
+        }
+        
+        function deleteAttendance(studentNum, dateKey) {
+            if (attendanceData[dateKey]) {
+                delete attendanceData[dateKey][studentNum];
+            }
+            saveData();
+            closeModal();
+            renderAttendance();
+        }
+        
+        function closeModal(event) {
+            if (!event || event.target.classList.contains('modal-overlay')) {
+                document.getElementById('modal-container').innerHTML = '';
+            }
+        }
+        
+        function setSortOrder(order) {
+            reportSortOrder = order;
+            document.getElementById('sort-by-num').classList.toggle('active', order === 'number');
+            document.getElementById('sort-by-date').classList.toggle('active', order === 'date');
+            updateReport();
+        }
+        
+        function updateReport() {
+            const month = document.getElementById('report-month-select').value;
+            const weeks = getWeeksInMonth(month);
+            const allDays = weeks.flat();
+            
+            const reportItems = [];
+            
+            allDays.forEach(dayInfo => {
+                const dateKey = dayInfo.dateStr;
+                const dayData = attendanceData[dateKey];
+                
+                if (dayData) {
+                    Object.keys(dayData).forEach(studentNum => {
+                        const data = dayData[studentNum];
+                        const student = students.find(s => s.num === parseInt(studentNum));
+                        
+                        let doc1 = '', doc2 = '';
+                        if (data.type === '미인정') {
+                            doc1 = '없음';
+                        } else if (data.type === '질병') {
+                            if (data.status === '결석') {
+                                doc1 = '신고서';
+                                doc2 = '처방전';
+                            } else {
+                                doc1 = '처방전';
+                            }
+                        } else if (data.type === '체험학습') {
+                            doc1 = '계획서';
+                            doc2 = '보고서';
+                        } else if (data.type === '출석인정') {
+                            doc1 = '신고서';
+                            doc2 = '기타';
+                        }
+                        
+                        let periodStr = '';
+                        if (data.status !== '결석') {
+                            if (data.startPeriod === data.endPeriod) {
+                                periodStr = data.startPeriod.toString();
+                            } else {
+                                periodStr = `${data.startPeriod}~${data.endPeriod}`;
+                            }
+                        }
+                        
+                        const [year, monthNum, day] = dateKey.split('-');
+                        reportItems.push({
+                            num: parseInt(studentNum),
+                            name: student.name,
+                            type: data.type + data.status,
+                            date: `${parseInt(monthNum)}/${parseInt(day)}`,
+                            dateKey: dateKey,
+                            period: periodStr,
+                            doc1: doc1,
+                            doc2: doc2
+                        });
+                    });
+                }
+            });
+            
+            if (reportSortOrder === 'number') {
+                reportItems.sort((a, b) => {
+                    if (a.num !== b.num) return a.num - b.num;
+                    return a.dateKey.localeCompare(b.dateKey);
+                });
+            } else {
+                reportItems.sort((a, b) => {
+                    if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey);
+                    return a.num - b.num;
+                });
+            }
+            
+            let html = `
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>번호</th>
+                            <th>이름</th>
+                            <th>유형</th>
+                            <th>날짜</th>
+                            <th>교시</th>
+                            <th colspan="2">필요서류</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            if (reportItems.length === 0) {
+                html += '<tr><td colspan="7">데이터 없음</td></tr>';
+            } else {
+                reportItems.forEach((item, idx) => {
+                    const docKey1 = `${item.dateKey}-${item.num}-doc1`;
+                    const docKey2 = `${item.dateKey}-${item.num}-doc2`;
+                    const doc1Class = docSubmitData[docKey1] ? 'doc-black' : 'doc-gray';
+                    const doc2Class = docSubmitData[docKey2] ? 'doc-black' : 'doc-gray';
+                    
+                    let separatorClass = '';
+                    if (reportSortOrder === 'date' && idx > 0 && reportItems[idx - 1].dateKey !== item.dateKey) {
+                        separatorClass = ' date-separator';
+                    }
+                    
+                    html += `
+                        <tr class="${separatorClass}">
+                            <td>${item.num}</td>
+                            <td>${item.name}</td>
+                            <td>${item.type}</td>
+                            <td>${item.date}</td>
+                            <td>${item.period}</td>
+                            <td class="doc-cell ${doc1Class}" onclick="toggleDoc('${docKey1}')">${item.doc1}</td>
+                            <td class="doc-cell ${doc2Class}" onclick="toggleDoc('${docKey2}')">${item.doc2}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            html += '</tbody></table>';
+            document.getElementById('report-content').innerHTML = html;
+        }
+        
+        function toggleDoc(docKey) {
+            docSubmitData[docKey] = !docSubmitData[docKey];
+            saveData();
+            updateReport();
+        }
+        
+        function updateExperience() {
+            const experienceByStudent = {};
+            
+            students.forEach(student => {
+                experienceByStudent[student.num] = {
+                    name: student.name,
+                    records: []
+                };
+            });
+            
+            const allDates = Object.keys(attendanceData).sort();
+            
+            allDates.forEach(dateKey => {
+                const dayData = attendanceData[dateKey];
+                Object.keys(dayData).forEach(studentNum => {
+                    const data = dayData[studentNum];
+                    if (data.type === '체험학습') {
+                        const [year, month, day] = dateKey.split('-');
+                        const dateStr = `${parseInt(month)}/${parseInt(day)}`;
+                        
+                        let periodStr = '';
+                        if (data.status === '결석') {
+                            periodStr = '종일';
+                        } else if (data.startPeriod === data.endPeriod) {
+                            periodStr = `${data.startPeriod}교시`;
+                        } else {
+                            periodStr = `${data.startPeriod}-${data.endPeriod}교시`;
+                        }
+                        
+                        experienceByStudent[studentNum].records.push({
+                            date: dateStr,
+                            status: data.status,
+                            period: periodStr,
+                            dateKey: dateKey
+                        });
+                    }
+                });
+            });
+            
+            const studentsWithExperience = students
+                .filter(s => experienceByStudent[s.num].records.length > 0)
+                .map(s => ({
+                    num: s.num,
+                    name: s.name,
+                    records: experienceByStudent[s.num].records
+                }));
+            
+            let html = `
+                <table class="experience-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">번호</th>
+                            <th style="width: 80px;">이름</th>
+                            <th style="width: 60px;">횟수</th>
+                            <th>상세 내역</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            if (studentsWithExperience.length === 0) {
+                html += '<tr><td colspan="4">체험학습 기록이 없습니다</td></tr>';
+            } else {
+                studentsWithExperience.forEach(student => {
+                    const absentRecords = student.records.filter(r => r.status === '결석');
+                    const otherRecords = student.records.filter(r => r.status !== '결석');
+                    
+                    let detailsHtml = '';
+                    
+                    if (absentRecords.length > 0) {
+                        const dates = absentRecords.map(r => r.date).join(', ');
+                        detailsHtml += `<div class="exp-item exp-absent">• 결석 ${absentRecords.length}일: ${dates}</div>`;
+                    }
+                    
+                    otherRecords.forEach(record => {
+                        detailsHtml += `<div class="exp-item exp-other">• ${record.status} ${record.period}: ${record.date}</div>`;
+                    });
+                    
+                    html += `
+                        <tr>
+                            <td>${student.num}</td>
+                            <td><strong>${student.name}</strong></td>
+                            <td><strong>${student.records.length}</strong></td>
+                            <td class="details">${detailsHtml}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            html += '</tbody></table>';
+            document.getElementById('experience-content').innerHTML = html;
+        }
+        
+        function renderCheckTab() {
+            document.getElementById('check-title-1').value = checkData.title1 || '';
+            
+            const tbody = document.getElementById('check-table-body');
+            tbody.innerHTML = '';
+            
+            students.forEach(student => {
+                const studentData = checkData.items[student.num] || {check1: false, memo: ''};
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${student.num}</td>
+                    <td class="name-col">${student.name}</td>
+                    <td class="check-col check-col-1">
+                        <input type="checkbox" class="check-checkbox" 
+                            ${studentData.check1 ? 'checked' : ''} 
+                            onchange="toggleCheck(${student.num}, 1)">
+                    </td>
+                    <td class="memo-col">
+                        <input type="text" class="check-memo-input" 
+                            value="${studentData.memo}" 
+                            placeholder=""
+                            oninput="updateMemo(${student.num}, this.value)">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function saveCheckTitle() {
+            checkData.title1 = document.getElementById('check-title-1').value;
+            saveData();
+        }
+        
+        function toggleCheck(studentNum, checkNum) {
+            if (!checkData.items[studentNum]) {
+                checkData.items[studentNum] = {check1: false, memo: ''};
+            }
+            checkData.items[studentNum].check1 = !checkData.items[studentNum].check1;
+            saveData();
+        }
+        
+        function updateMemo(studentNum, value) {
+            if (!checkData.items[studentNum]) {
+                checkData.items[studentNum] = {check1: false, memo: ''};
+            }
+            checkData.items[studentNum].memo = value;
+            saveData();
+        }
+        
+        function resetCheckData() {
+            if (confirm('⚠️ 체크 탭의 모든 내용을 삭제하시겠습니까?\n(제목, 체크, 비고가 모두 초기화됩니다)')) {
+                checkData = {title1: '', items: {}};
+                saveData();
+                renderCheckTab();
+                alert('✅ 체크 탭이 초기화되었습니다!');
+            }
+        }
+        
+        function resetCheckColumn(checkNum) {
+            if (confirm('⚠️ 체크의 모든 내용을 삭제하시겠습니까?\n(제목과 모든 체크가 초기화됩니다)')) {
+                checkData.title1 = '';
+                Object.keys(checkData.items).forEach(studentNum => {
+                    checkData.items[studentNum].check1 = false;
+                });
+                saveData();
+                renderCheckTab();
+                alert('✅ 체크가 초기화되었습니다!');
+            }
+        }
+        
+        function exportData() {
+            const exportObj = {
+                attendanceData: attendanceData,
+                docSubmitData: docSubmitData,
+                highlightData: highlightData,
+                checkData: checkData,
+                exportDate: new Date().toISOString(),
+                version: "1.0"
+            };
+            
+            const dataStr = JSON.stringify(exportObj, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+            const filename = `출석부_백업_${dateStr}.json`;
+            
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert('✅ 데이터가 백업되었습니다!\n파일: ' + filename);
+        }
+        
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importObj = JSON.parse(e.target.result);
+                    
+                    if (!importObj.attendanceData) {
+                        alert('❌ 올바른 백업 파일이 아닙니다.');
+                        return;
+                    }
+                    
+                    const confirmMsg = '⚠️ 데이터를 복원하시겠습니까?\n현재 데이터는 모두 덮어씌워집니다!';
+                    if (!confirm(confirmMsg)) {
+                        event.target.value = '';
+                        return;
+                    }
+                    
+                    attendanceData = importObj.attendanceData || {};
+                    docSubmitData = importObj.docSubmitData || {};
+                    highlightData = importObj.highlightData || {};
+                    checkData = importObj.checkData || {title1: '', items: {}};
+                    
+                    cleanExpiredHighlights();
+                    saveData();
+                    renderAttendance();
+                    updateReport();
+                    
+                    alert('✅ 데이터가 복원되었습니다!');
+                } catch (error) {
+                    alert('❌ 파일을 읽는 중 오류가 발생했습니다.');
+                    console.error(error);
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+        
+        window.onload = init;
+        
+        setInterval(() => {
+            const beforeCount = Object.keys(highlightData).length;
+            cleanExpiredHighlights();
+            const afterCount = Object.keys(highlightData).length;
+            if (beforeCount !== afterCount) {
+                renderAttendance();
+            }
+        }, 60000);
+    </script>
+</body>
+</html>
