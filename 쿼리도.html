@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>쿼리도</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --accent-x: #ff6b6b;
+            --accent-x-glow: rgba(255, 107, 107, 0.4);
+            --accent-o: #4ecdc4;
+            --accent-o-glow: rgba(78, 205, 196, 0.4);
+            --text-primary: #ffffff;
+            --text-secondary: #8888aa;
+            --border-color: #2a2a3a;
+            --cell-bg: #1e1e2e;
+            --cell-hover: #2a2a3e;
+            --wall-gap: #0a0a0f;
+            --wall-placed: #ff6b6b;
+            --wall-placed-2: #4ecdc4;
+            --wall-preview: rgba(255, 215, 0, 0.7);
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            padding: 20px;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(255, 107, 107, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(78, 205, 196, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        .container { max-width: 560px; width: 100%; }
+        .hidden { display: none !important; }
+
+        /* ── HEADER ── */
+        header { text-align: center; margin-bottom: 28px; }
+        h1 {
+            font-size: 2.5rem; font-weight: 800; letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--accent-x), var(--accent-o));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            margin-bottom: 6px;
+        }
+        .subtitle { color: var(--text-secondary); font-weight: 300; font-size: 1rem; }
+
+        /* ── LOBBY ── */
+        .lobby-container {
+            background: var(--bg-secondary); border-radius: 24px; padding: 36px;
+            border: 1px solid var(--border-color); box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+        }
+        .rules-section { background: var(--bg-tertiary); border-radius: 16px; margin-bottom: 24px; overflow: hidden; }
+        .rules-toggle-btn {
+            width: 100%; padding: 18px 22px; background: none; border: none; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center; transition: background 0.2s;
+        }
+        .rules-toggle-btn:hover { background: rgba(255,255,255,0.04); }
+        .rules-toggle-btn h3 { font-size: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px; margin: 0; font-family: 'Outfit', sans-serif; }
+        .rules-arrow { color: var(--text-secondary); font-size: 0.85rem; transition: transform 0.3s; }
+        .rules-arrow.open { transform: rotate(180deg); }
+        .rules-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; padding: 0 22px; }
+        .rules-content.open { max-height: 500px; padding: 0 22px 22px; }
+        .rules-section ul { list-style: none; padding: 0; }
+        .rules-section li { color: var(--text-secondary); font-size: 0.88rem; padding: 6px 0 6px 18px; position: relative; line-height: 1.5; }
+        .rules-section li::before { content: '→'; position: absolute; left: 0; color: var(--accent-o); }
+        .lobby-buttons { display: flex; flex-direction: column; gap: 14px; }
+        .lobby-btn {
+            padding: 18px 28px; font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 600;
+            border: none; border-radius: 14px; cursor: pointer; transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .lobby-btn-practice { background: linear-gradient(135deg, var(--accent-x), #ff8a80); color: white; box-shadow: 0 4px 20px var(--accent-x-glow); }
+        .lobby-btn-practice:hover { transform: translateY(-3px); box-shadow: 0 8px 30px var(--accent-x-glow); }
+        .lobby-btn-battle { background: linear-gradient(135deg, var(--accent-o), #45b7aa); color: white; box-shadow: 0 4px 20px var(--accent-o-glow); }
+        .lobby-btn-battle:hover { transform: translateY(-3px); box-shadow: 0 8px 30px var(--accent-o-glow); }
+
+
+        /* ── GAME SCREEN ── */
+        .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .game-title { font-size: 1.4rem; font-weight: 700; background: linear-gradient(135deg, var(--accent-x), var(--accent-o)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .back-btn { padding: 7px 14px; font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+        .back-btn:hover { border-color: var(--accent-x); color: var(--text-primary); }
+
+        /* ── DIFFICULTY ── */
+        .difficulty-bar { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+        .difficulty-btn { padding: 7px 18px; font-family: 'Outfit', sans-serif; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border-color); border-radius: 20px; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
+        .difficulty-btn:hover { border-color: var(--accent-o); color: var(--text-primary); }
+        .difficulty-btn.active { background: var(--accent-o); border-color: var(--accent-o); color: var(--bg-primary); }
+
+        /* ── STATUS BAR ── */
+        .status-bar { display: flex; justify-content: center; align-items: stretch; gap: 16px; margin-bottom: 12px; padding: 14px 20px; background: var(--bg-secondary); border-radius: 16px; border: 1px solid var(--border-color); }
+        .player-indicator { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 12px; transition: all 0.3s ease; min-width: 110px; }
+        .player-indicator.active-1 { background: rgba(255,107,107,0.15); box-shadow: 0 0 20px var(--accent-x-glow); }
+        .player-indicator.active-2 { background: rgba(78,205,196,0.15); box-shadow: 0 0 20px var(--accent-o-glow); }
+        .player-indicator.is-me { border: 2px solid var(--accent-o); }
+        .player-indicator.winner { background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,193,7,0.2)); border: 2px solid #ffd700; box-shadow: 0 0 30px rgba(255,215,0,0.5); }
+        .player-indicator.loser { opacity: 0.45; }
+        .player-symbol { font-size: 1.5rem; font-weight: 800; }
+        .player-symbol.p1 { color: var(--accent-x); }
+        .player-symbol.p2 { color: var(--accent-o); }
+        .player-name { font-weight: 600; font-size: 0.82rem; text-align: center; }
+        .player-walls { font-size: 0.75rem; color: var(--text-secondary); }
+        .player-result { font-size: 0.95rem; font-weight: 800; margin-top: 3px; }
+        .player-result.win { color: #ffd700; }
+        .player-result.lose { color: var(--accent-x); }
+
+        /* ── TIMER ── */
+        .timer-section { background: var(--bg-secondary); border-radius: 14px; padding: 12px 20px; margin-bottom: 12px; border: 1px solid var(--border-color); }
+        .turn-indicator { font-size: 0.88rem; color: var(--text-secondary); text-align: center; margin-bottom: 8px; }
+        .turn-indicator.my-turn { color: var(--accent-o); font-weight: 600; }
+        .timer-display { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+        .timer-value { min-width: 44px; text-align: center; transition: color 0.3s; }
+        .timer-value.warning { color: #ffd700; }
+        .timer-value.danger { color: var(--accent-x); animation: pulse 0.5s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.1); } }
+        .timer-bar { width: 100%; height: 5px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; }
+        .timer-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-o), var(--accent-x)); border-radius: 3px; transition: width 0.1s linear; }
+        .timer-bar-fill.warning { background: linear-gradient(90deg, #ffd700, #ffaa00); }
+        .timer-bar-fill.danger { background: linear-gradient(90deg, var(--accent-x), #ff4444); }
+
+        /* ── MODE CONTROLS ── */
+        .mode-controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 12px; }
+        .mode-btn {
+            padding: 9px 20px; font-family: 'Outfit', sans-serif; font-size: 0.88rem; font-weight: 600;
+            border: 1px solid var(--border-color); border-radius: 10px;
+            background: var(--bg-secondary); color: var(--text-secondary);
+            cursor: pointer; transition: all 0.2s; flex: 1;
+        }
+        .mode-btn:hover { border-color: var(--accent-o); color: var(--text-primary); }
+        .mode-btn.active-move { background: rgba(78,205,196,0.2); border-color: var(--accent-o); color: var(--accent-o); }
+        .mode-btn.active-wall { background: rgba(255,215,0,0.15); border-color: #ffd700; color: #ffd700; }
+        .mode-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── BOARD ── */
+        .board-wrapper { display: flex; justify-content: center; margin-bottom: 14px; }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(9, 36px) repeat(8, 8px);
+            grid-template-rows: repeat(9, 36px) repeat(8, 8px);
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
+            padding: 12px;
+            gap: 0;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        /* Use CSS grid area instead, redefine as flat 17x17 */
+        .board-flat {
+            display: grid;
+            grid-template-columns: repeat(17, 1fr);
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
+            padding: 10px;
+            gap: 0;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            width: fit-content;
+            margin: 0 auto 14px;
+        }
+
+        .sq {
+            width: 34px; height: 34px;
+            background: var(--cell-bg);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: background 0.15s;
+            position: relative;
+        }
+        .sq:hover { background: var(--cell-hover); }
+        .sq.goal-1 { background: rgba(255,107,107,0.08); }
+        .sq.goal-2 { background: rgba(78,205,196,0.08); }
+        .sq.valid-move { background: rgba(78,205,196,0.22); box-shadow: 0 0 0 2px var(--accent-o) inset; cursor: pointer; }
+        .sq.valid-move:hover { background: rgba(78,205,196,0.35); }
+
+        /* wall gap horizontal (between rows) */
+        .wgap-h {
+            width: 34px; height: 7px;
+            background: var(--bg-primary);
+            cursor: pointer; border-radius: 3px;
+            transition: background 0.15s;
+            position: relative;
+        }
+        .wgap-h:hover.wall-placeable { background: var(--wall-preview); }
+        .wgap-h.wall-placed-1 { background: var(--wall-placed) !important; box-shadow: 0 0 6px var(--accent-x-glow); }
+        .wgap-h.wall-placed-2 { background: var(--wall-placed-2) !important; box-shadow: 0 0 6px var(--accent-o-glow); }
+        .wgap-h.wall-preview { background: var(--wall-preview) !important; }
+
+        /* wall gap vertical (between cols) */
+        .wgap-v {
+            width: 7px; height: 34px;
+            background: var(--bg-primary);
+            cursor: pointer; border-radius: 3px;
+            transition: background 0.15s;
+            position: relative;
+        }
+        .wgap-v:hover.wall-placeable { background: var(--wall-preview); }
+        .wgap-v.wall-placed-1 { background: var(--wall-placed) !important; box-shadow: 0 0 6px var(--accent-x-glow); }
+        .wgap-v.wall-placed-2 { background: var(--wall-placed-2) !important; box-shadow: 0 0 6px var(--accent-o-glow); }
+        .wgap-v.wall-preview { background: var(--wall-preview) !important; }
+
+        /* intersection */
+        .wcorner {
+            width: 7px; height: 7px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+        }
+        .wcorner.wall-preview { background: var(--wall-preview) !important; }
+
+        /* player tokens */
+        .token {
+            width: 26px; height: 26px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 800;
+            border: 2px solid rgba(255,255,255,0.3);
+            position: absolute; pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .token-1 { background: radial-gradient(circle at 35% 35%, #ff9a9a, var(--accent-x)); color: white; box-shadow: 0 2px 12px var(--accent-x-glow); }
+        .token-2 { background: radial-gradient(circle at 35% 35%, #7eede8, var(--accent-o)); color: white; box-shadow: 0 2px 12px var(--accent-o-glow); }
+
+        /* ── CONTROLS ── */
+        .controls { display: flex; justify-content: center; gap: 12px; margin-top: 6px; }
+        .game-over-controls { display: flex; justify-content: center; gap: 12px; margin-top: 12px; }
+        .btn { padding: 11px 24px; font-family: 'Outfit', sans-serif; font-size: 0.92rem; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(135deg, var(--accent-x), #ff8a80); color: white; box-shadow: 0 4px 20px var(--accent-x-glow); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 25px var(--accent-x-glow); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--border-color); }
+        .btn-success { background: linear-gradient(135deg, var(--accent-o), #45b7aa); color: white; box-shadow: 0 4px 20px var(--accent-o-glow); }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 6px 25px var(--accent-o-glow); }
+        .thinking { text-align: center; margin-top: 10px; color: var(--accent-o); font-size: 0.88rem; opacity: 0; transition: opacity 0.3s; }
+        .thinking.show { opacity: 1; }
+        .thinking-dots::after { content: ''; animation: dots 1.5s infinite; }
+        @keyframes dots { 0%,20%{ content: '.'; } 40%{ content: '..'; } 60%,100%{ content: '...'; } }
+
+        @media (max-width: 520px) {
+            h1 { font-size: 1.8rem; }
+            .lobby-container { padding: 22px; }
+            .sq { width: 26px; height: 26px; border-radius: 4px; }
+            .wgap-h { width: 26px; height: 6px; }
+            .wgap-v { width: 6px; height: 26px; }
+            .token { width: 20px; height: 20px; font-size: 0.55rem; }
+            .status-bar { flex-direction: column; gap: 8px; }
+            .player-indicator { flex-direction: row; min-width: auto; width: 100%; justify-content: center; gap: 10px; }
+            .game-over-controls { flex-direction: column; }
+            .game-over-controls .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container">
+
+    <!-- ══ 로비 ══ -->
+    <div id="lobby-screen">
+        <header>
+            <h1>쿼리도</h1>
+            <p class="subtitle">Quoridor — 벽으로 막고, 길을 뚫어라</p>
+        </header>
+        <div class="lobby-container">
+            <div class="rules-section">
+                <button class="rules-toggle-btn" onclick="toggleRules()">
+                    <h3><span>📖</span> 게임 규칙 (클릭)</h3>
+                    <span class="rules-arrow" id="rules-arrow">▼</span>
+                </button>
+                <div class="rules-content" id="rules-content">
+                    <ul>
+                        <li>9×9 보드에서 2명이 대결합니다</li>
+                        <li><strong style="color:var(--accent-x)">빨강(P1)</strong>은 아래→위, <strong style="color:var(--accent-o)">청록(P2)</strong>은 위→아래로 이동해 반대편 끝에 도착하면 승리!</li>
+                        <li>매 턴 <strong style="color:#ffd700">이동</strong> 또는 <strong style="color:#ffd700">벽 설치</strong> 중 하나를 선택합니다</li>
+                        <li>각 플레이어는 <strong style="color:#ffd700">벽 10개</strong>를 보유합니다</li>
+                        <li>벽은 2칸 길이로 설치되며, 상대방의 <strong style="color:var(--accent-x)">경로를 완전히 차단</strong>할 수는 없어요</li>
+                        <li>서로 마주보는 상황엔 <strong style="color:var(--accent-o)">상대를 넘어</strong> 이동할 수 있습니다</li>
+                        <li><strong style="color:var(--accent-x)">⏱ 대결에서는 30초 제한시간!</strong></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="lobby-buttons">
+                <button class="lobby-btn lobby-btn-practice" onclick="startPractice()">🤖 연습하기</button>
+                <button class="lobby-btn lobby-btn-battle" onclick="startLocalBattle()">⚔ 대결하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ 연습 모드 ══ -->
+    <div id="practice-screen" class="hidden">
+        <div class="game-header">
+            <span class="game-title">🤖 연습하기</span>
+            <button class="back-btn" onclick="backToLobby()">← 나가기</button>
+        </div>
+        <div class="difficulty-bar">
+            <button class="difficulty-btn" data-level="easy" onclick="setDifficulty('easy')">😊 쉬움</button>
+            <button class="difficulty-btn active" data-level="medium" onclick="setDifficulty('medium')">🤔 보통</button>
+            <button class="difficulty-btn" data-level="hard" onclick="setDifficulty('hard')">😈 어려움</button>
+        </div>
+        <div class="status-bar">
+            <div class="player-indicator active-1" id="prac-p1">
+                <span class="player-symbol p1">▲</span>
+                <div>
+                    <div class="player-name">나 (P1)</div>
+                    <div class="player-walls" id="prac-p1-walls">벽 10개</div>
+                    <div class="player-result" id="prac-p1-result"></div>
+                </div>
+            </div>
+            <div class="player-indicator" id="prac-p2">
+                <span class="player-symbol p2">▼</span>
+                <div>
+                    <div class="player-name">AI (P2)</div>
+                    <div class="player-walls" id="prac-p2-walls">벽 10개</div>
+                    <div class="player-result" id="prac-p2-result"></div>
+                </div>
+            </div>
+        </div>
+        <div class="mode-controls">
+            <button class="mode-btn active-move" id="prac-move-btn" onclick="setPracMode('move')">🚶 이동</button>
+            <button class="mode-btn" id="prac-wall-btn" onclick="setPracMode('wall')">🧱 벽 설치</button>
+        </div>
+        <div id="practice-board" class="board-flat"></div>
+        <div class="thinking" id="thinking">🤖 AI가 생각 중<span class="thinking-dots"></span></div>
+        <div class="controls">
+            <button class="btn btn-primary" onclick="resetPractice()">🔄 새 게임</button>
+            <button class="btn btn-secondary" onclick="backToLobby()">← 돌아가기</button>
+        </div>
+    </div>
+
+    <!-- ══ 로컬 2인 대결 ══ -->
+    <div id="multiplayer-screen" class="hidden">
+        <div class="game-header">
+            <span class="game-title">⚔ 대결</span>
+        </div>
+        <div class="status-bar">
+            <div class="player-indicator" id="multi-p1">
+                <span class="player-symbol p1">▲</span>
+                <div>
+                    <div class="player-name">P1</div>
+                    <div class="player-walls" id="multi-p1-walls">벽 10개</div>
+                    <div class="player-result" id="multi-p1-result"></div>
+                </div>
+            </div>
+            <div class="player-indicator" id="multi-p2">
+                <span class="player-symbol p2">▼</span>
+                <div>
+                    <div class="player-name">P2</div>
+                    <div class="player-walls" id="multi-p2-walls">벽 10개</div>
+                    <div class="player-result" id="multi-p2-result"></div>
+                </div>
+            </div>
+        </div>
+        <div class="timer-section" id="timer-section">
+            <div class="turn-indicator" id="multi-turn-indicator">게임 시작!</div>
+            <div class="timer-display">
+                <span>⏱</span>
+                <span class="timer-value" id="timer-value">30</span>
+                <span>초</span>
+            </div>
+            <div class="timer-bar"><div class="timer-bar-fill" id="timer-bar-fill" style="width:100%"></div></div>
+        </div>
+        <div class="mode-controls" id="multi-mode-controls">
+            <button class="mode-btn active-move" id="multi-move-btn" onclick="setMultiMode('move')">🚶 이동</button>
+            <button class="mode-btn" id="multi-wall-btn" onclick="setMultiMode('wall')">🧱 벽 설치</button>
+        </div>
+        <div id="multiplayer-board" class="board-flat"></div>
+        <div class="game-over-controls hidden" id="multi-gameover-controls">
+            <button class="btn btn-success" onclick="handleMultiRetry()">🔄 다시하기</button>
+            <button class="btn btn-secondary" onclick="handleMultiBack()">← 돌아가기</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════════════════
+const BOARD_SIZE = 9;           // 9x9 player cells
+const TURN_TIME  = 30;
+const MAX_WALLS  = 10;
+let currentMode = 'lobby';
+
+// ════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════
+function toArr(v) {
+    if (!v) return [];
+    if (Array.isArray(v)) return v;
+    return Object.keys(v).sort((a,b)=>+a-+b).map(k=>v[k]);
+}
+
+function toggleRules() {
+    document.getElementById('rules-content').classList.toggle('open');
+    document.getElementById('rules-arrow').classList.toggle('open');
+}
+
+function showScreen(id) {
+    ['lobby-screen','practice-screen','multiplayer-screen']
+        .forEach(s => document.getElementById(s).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+}
+
+// ════════════════════════════════════════════════════
+//  GAME LOGIC CORE
+// ════════════════════════════════════════════════════
+/*  Board coordinate system
+    Player positions: (row, col) 0-8 each
+    Walls stored as { r, c, dir } where dir='h'|'v'
+    A horizontal wall at (r,c) blocks passage between rows r and r+1,
+    spanning cols c and c+1.
+    A vertical wall at (r,c) blocks passage between cols c and c+1,
+    spanning rows r and r+1.
+*/
+
+function makeInitialState() {
+    return {
+        pos: [null, { r:0, c:4 }, { r:8, c:4 }],   // index 1 = P1, 2 = P2
+        walls: [],       // [{r,c,dir}]
+        wallsLeft: [null, MAX_WALLS, MAX_WALLS],
+        turn: 1,
+        gameOver: false,
+        winner: 0
+    };
+}
+
+// Does a wall exist at exact position?
+function wallAt(walls, r, c, dir) {
+    return walls.some(w => w.r===r && w.c===c && w.dir===dir);
+}
+
+// Is passage blocked between adjacent cells (dr,dc) = (±1,0) or (0,±1)?
+function isBlocked(walls, r1, c1, r2, c2) {
+    const dr = r2 - r1, dc = c2 - c1;
+    if (dr === 1 && dc === 0) {
+        // moving down: blocked by H wall between row r1 and r2
+        return wallAt(walls,r1,c1,'h') || wallAt(walls,r1,c1-1,'h');
+    }
+    if (dr === -1 && dc === 0) {
+        return wallAt(walls,r2,c2,'h') || wallAt(walls,r2,c2-1,'h');
+    }
+    if (dc === 1 && dr === 0) {
+        // moving right: blocked by V wall between col c1 and c2
+        return wallAt(walls,r1,c1,'v') || wallAt(walls,r1-1,c1,'v');
+    }
+    if (dc === -1 && dr === 0) {
+        return wallAt(walls,r1,c2,'v') || wallAt(walls,r1-1,c2,'v');
+    }
+    return false;
+}
+
+// BFS: can player reach goal row?
+function canReach(walls, startR, startC, goalRow) {
+    const visited = new Set();
+    const key = (r,c) => r*9+c;
+    const q = [[startR,startC]];
+    visited.add(key(startR,startC));
+    while (q.length) {
+        const [r,c] = q.shift();
+        if (r === goalRow) return true;
+        for (const [nr,nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]) {
+            if (nr<0||nr>8||nc<0||nc>8) continue;
+            if (visited.has(key(nr,nc))) continue;
+            if (isBlocked(walls,r,c,nr,nc)) continue;
+            visited.add(key(nr,nc));
+            q.push([nr,nc]);
+        }
+    }
+    return false;
+}
+
+// Get valid move targets for a player
+function getValidMoves(state, player) {
+    const {pos, walls} = state;
+    const opp = player === 1 ? 2 : 1;
+    const {r,c} = pos[player];
+    const oppPos = pos[opp];
+    const moves = [];
+    const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+    for (const [dr,dc] of dirs) {
+        const nr = r+dr, nc = c+dc;
+        if (nr<0||nr>8||nc<0||nc>8) continue;
+        if (isBlocked(walls,r,c,nr,nc)) continue;
+        // occupied by opponent?
+        if (nr===oppPos.r && nc===oppPos.c) {
+            // try to jump over
+            const jr=nr+dr, jc=nc+dc;
+            if (jr>=0&&jr<=8&&jc>=0&&jc<=8&&!isBlocked(walls,nr,nc,jr,jc)) {
+                moves.push({r:jr,c:jc});
+            } else {
+                // side jumps
+                for (const [sdr,sdc] of dirs) {
+                    if (sdr===dr&&sdc===dc) continue;
+                    if (sdr===-dr&&sdc===-dc) continue;
+                    const sr=nr+sdr, sc=nc+sdc;
+                    if (sr<0||sr>8||sc<0||sc>8) continue;
+                    if (!isBlocked(walls,nr,nc,sr,sc)) moves.push({r:sr,c:sc});
+                }
+            }
+        } else {
+            moves.push({r:nr,c:nc});
+        }
+    }
+    return moves;
+}
+
+// Can wall be placed?
+function canPlaceWall(state, r, c, dir) {
+    const {walls} = state;
+    if (r<0||c<0) return false;
+    if (dir==='h') {
+        if (r>7||c>7) return false;
+        if (wallAt(walls,r,c,'h')) return false;
+        if (wallAt(walls,r,c+1,'h')||wallAt(walls,r,c-1,'h')) return false; // overlap adjacent
+        if (wallAt(walls,r,c,'v')) return false; // cross at center
+    } else {
+        if (r>7||c>7) return false;
+        if (wallAt(walls,r,c,'v')) return false;
+        if (wallAt(walls,r+1,c,'v')||wallAt(walls,r-1,c,'v')) return false;
+        if (wallAt(walls,r,c,'h')) return false;
+    }
+    // check both players can still reach goal
+    const testWalls = [...walls, {r,c,dir}];
+    const p1ok = canReach(testWalls, state.pos[1].r, state.pos[1].c, 8);
+    const p2ok = canReach(testWalls, state.pos[2].r, state.pos[2].c, 0);
+    return p1ok && p2ok;
+}
+
+function applyMove(state, player, nr, nc) {
+    const ns = deepClone(state);
+    ns.pos[player] = {r:nr, c:nc};
+    const goalRow = player===1 ? 8 : 0;
+    if (nr === goalRow) { ns.gameOver=true; ns.winner=player; }
+    else ns.turn = player===1?2:1;
+    return ns;
+}
+
+function applyWall(state, player, r, c, dir) {
+    const ns = deepClone(state);
+    ns.walls.push({r,c,dir,owner:player});
+    ns.wallsLeft[player]--;
+    ns.turn = player===1?2:1;
+    return ns;
+}
+
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+// Shortest path length via BFS
+function bfsLen(walls, sr, sc, goalRow) {
+    const visited = new Set();
+    const key = (r,c) => r*9+c;
+    const q = [[sr,sc,0]];
+    visited.add(key(sr,sc));
+    while (q.length) {
+        const [r,c,d] = q.shift();
+        if (r===goalRow) return d;
+        for (const [nr,nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]) {
+            if (nr<0||nr>8||nc<0||nc>8) continue;
+            if (visited.has(key(nr,nc))) continue;
+            if (isBlocked(walls,r,c,nr,nc)) continue;
+            visited.add(key(nr,nc));
+            q.push([nr,nc,d+1]);
+        }
+    }
+    return 999;
+}
+
+// ════════════════════════════════════════════════════
+//  BOARD RENDERING
+// ════════════════════════════════════════════════════
+/*
+  The visual board is 17x17 cells:
+    Even row + even col → player square  (row/2, col/2)
+    Even row + odd col  → vertical wall gap between cols
+    Odd row + even col  → horizontal wall gap between rows
+    Odd row + odd col   → corner intersection
+*/
+
+function buildBoardDOM(containerId, onSqClick, onWallClick, onWallHover, onWallLeave) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    container.style.gridTemplateColumns = '';
+    // Build CSS grid: 9 squares + 8 gaps alternating
+    const sizes = [];
+    for (let i=0;i<9;i++) { sizes.push('34px'); if(i<8) sizes.push('7px'); }
+    container.style.gridTemplateColumns = sizes.join(' ');
+    container.style.gridTemplateRows = sizes.join(' ');
+
+    for (let vr=0;vr<17;vr++) {
+        for (let vc=0;vc<17;vc++) {
+            const el = document.createElement('div');
+            const isEvenR = vr%2===0, isEvenC = vc%2===0;
+            const r = Math.floor(vr/2), c = Math.floor(vc/2);
+
+            if (isEvenR && isEvenC) {
+                el.className = 'sq';
+                el.dataset.r = r; el.dataset.c = c;
+                // goal rows
+                if (r===8) el.classList.add('goal-1');
+                if (r===0) el.classList.add('goal-2');
+                el.addEventListener('click', () => onSqClick(r, c));
+            } else if (!isEvenR && isEvenC) {
+                // horizontal gap: between rows r and r+1, at col c
+                el.className = 'wgap-h';
+                el.dataset.wr = r; el.dataset.wc = c; el.dataset.wdir = 'h';
+                el.addEventListener('click', () => onWallClick(r, c, 'h'));
+                el.addEventListener('mouseenter', () => onWallHover(r, c, 'h'));
+                el.addEventListener('mouseleave', () => onWallLeave());
+            } else if (isEvenR && !isEvenC) {
+                // vertical gap: between cols c and c+1, at row r
+                el.className = 'wgap-v';
+                el.dataset.wr = r; el.dataset.wc = c; el.dataset.wdir = 'v';
+                el.addEventListener('click', () => onWallClick(r, c, 'v'));
+                el.addEventListener('mouseenter', () => onWallHover(r, c, 'v'));
+                el.addEventListener('mouseleave', () => onWallLeave());
+            } else {
+                el.className = 'wcorner';
+                el.dataset.cr = r; el.dataset.cc = c;
+            }
+            container.appendChild(el);
+        }
+    }
+}
+
+function renderState(containerId, state, playerNum, mode, validMoves) {
+    const container = document.getElementById(containerId);
+    // Reset classes
+    container.querySelectorAll('.sq').forEach(el => {
+        el.classList.remove('valid-move');
+        el.innerHTML = '';
+    });
+    container.querySelectorAll('.wgap-h,.wgap-v').forEach(el => {
+        el.classList.remove('wall-placed-1','wall-placed-2','wall-placeable');
+    });
+    container.querySelectorAll('.wcorner').forEach(el => {
+        el.classList.remove('wall-preview');
+        el.style.background = '';
+    });
+
+    // Place tokens
+    for (let p=1;p<=2;p++) {
+        const {r,c} = state.pos[p];
+        const sq = container.querySelector(`.sq[data-r="${r}"][data-c="${c}"]`);
+        if (sq) {
+            const tok = document.createElement('div');
+            tok.className = `token token-${p}`;
+            tok.textContent = p===1?'▲':'▼';
+            sq.appendChild(tok);
+        }
+    }
+
+    // Render walls
+    toArr(state.walls).forEach(w => {
+        const cls = w.owner === 2 ? 'wall-placed-2' : 'wall-placed-1';
+        const wallColor = w.owner === 2 ? 'var(--wall-placed-2)' : 'var(--wall-placed)';
+        if (w.dir==='h') {
+            // horizontal wall: blocks row w.r↔w.r+1, spans cols w.c and w.c+1
+            // In 17x17: row index = w.r*2+1, col for c = w.c*2, and w.c*2+2
+            const gap1 = container.querySelector(`.wgap-h[data-wr="${w.r}"][data-wc="${w.c}"]`);
+            const gap2 = container.querySelector(`.wgap-h[data-wr="${w.r}"][data-wc="${w.c+1}"]`);
+            const corner = container.querySelector(`.wcorner[data-cr="${w.r}"][data-cc="${w.c}"]`);
+            if (gap1) gap1.classList.add(cls);
+            if (gap2) gap2.classList.add(cls);
+            if (corner) corner.style.background = wallColor;
+        } else {
+            // vertical wall: spans rows w.r and w.r+1, blocks cols w.c↔w.c+1
+            const gap1 = container.querySelector(`.wgap-v[data-wr="${w.r}"][data-wc="${w.c}"]`);
+            const gap2 = container.querySelector(`.wgap-v[data-wr="${w.r+1}"][data-wc="${w.c}"]`);
+            const corner = container.querySelector(`.wcorner[data-cr="${w.r}"][data-cc="${w.c}"]`);
+            if (gap1) gap1.classList.add(cls);
+            if (gap2) gap2.classList.add(cls);
+            if (corner) corner.style.background = wallColor;
+        }
+    });
+
+    // Show valid moves if in move mode
+    if (mode==='move' && validMoves) {
+        validMoves.forEach(({r,c}) => {
+            const sq = container.querySelector(`.sq[data-r="${r}"][data-c="${c}"]`);
+            if (sq) sq.classList.add('valid-move');
+        });
+    }
+
+    // Show wall placeable hints if in wall mode
+    if (mode==='wall') {
+        container.querySelectorAll('.wgap-h,.wgap-v').forEach(el => {
+            const wr = +el.dataset.wr, wc = +el.dataset.wc, wdir = el.dataset.wdir;
+            if (canPlaceWall(state, wr, wc, wdir)) el.classList.add('wall-placeable');
+        });
+    }
+}
+
+function previewWall(containerId, state, r, c, dir, enabled) {
+    const container = document.getElementById(containerId);
+    // clear previous preview
+    container.querySelectorAll('.wgap-h,.wgap-v,.wcorner').forEach(el => el.classList.remove('wall-preview'));
+    if (!enabled) return;
+    if (!canPlaceWall(state, r, c, dir)) return;
+    if (dir==='h') {
+        const gap1 = container.querySelector(`.wgap-h[data-wr="${r}"][data-wc="${c}"]`);
+        const gap2 = container.querySelector(`.wgap-h[data-wr="${r}"][data-wc="${c+1}"]`);
+        const corner = container.querySelector(`.wcorner[data-cr="${r}"][data-cc="${c}"]`);
+        if (gap1) gap1.classList.add('wall-preview');
+        if (gap2) gap2.classList.add('wall-preview');
+        if (corner) corner.classList.add('wall-preview');
+    } else {
+        const gap1 = container.querySelector(`.wgap-v[data-wr="${r}"][data-wc="${c}"]`);
+        const gap2 = container.querySelector(`.wgap-v[data-wr="${r+1}"][data-wc="${c}"]`);
+        const corner = container.querySelector(`.wcorner[data-cr="${r}"][data-cc="${c}"]`);
+        if (gap1) gap1.classList.add('wall-preview');
+        if (gap2) gap2.classList.add('wall-preview');
+        if (corner) corner.classList.add('wall-preview');
+    }
+}
+
+// ════════════════════════════════════════════════════
+//  PRACTICE MODE
+// ════════════════════════════════════════════════════
+let pracState = null;
+let pracMode = 'move';  // 'move' | 'wall'
+let pracDifficulty = 'medium';
+let pracThinking = false;
+
+function startPractice() {
+    currentMode = 'practice';
+    showScreen('practice-screen');
+    resetPractice();
+}
+
+function setDifficulty(level) {
+    pracDifficulty = level;
+    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.toggle('active', b.dataset.level===level));
+    resetPractice();
+}
+
+function resetPractice() {
+    pracState = makeInitialState();
+    pracMode = 'move';
+    pracThinking = false;
+    document.getElementById('thinking').classList.remove('show');
+    updatePracModeUI();
+    buildBoardDOM('practice-board',
+        pracSqClick, pracWallClick,
+        (r,c,d) => previewWall('practice-board', pracState, r, c, d, pracMode==='wall' && pracState.turn===1 && !pracState.gameOver),
+        () => { container_clearPreview('practice-board'); }
+    );
+    renderPractice();
+    updatePracPlayerUI();
+}
+
+function container_clearPreview(cid) {
+    document.getElementById(cid).querySelectorAll('.wgap-h,.wgap-v,.wcorner').forEach(el => el.classList.remove('wall-preview'));
+}
+
+function renderPractice() {
+    const vm = (!pracState.gameOver && pracState.turn===1 && pracMode==='move') ? getValidMoves(pracState,1) : null;
+    renderState('practice-board', pracState, 1, pracState.turn===1?pracMode:'none', vm);
+    updatePracPlayerUI();
+}
+
+function updatePracPlayerUI() {
+    const s = pracState;
+    document.getElementById('prac-p1-walls').textContent = `벽 ${s.wallsLeft[1]}개`;
+    document.getElementById('prac-p2-walls').textContent = `벽 ${s.wallsLeft[2]}개`;
+    const p1 = document.getElementById('prac-p1'), p2 = document.getElementById('prac-p2');
+    p1.classList.remove('active-1','winner','loser'); p2.classList.remove('active-2','winner','loser');
+    document.getElementById('prac-p1-result').textContent = '';
+    document.getElementById('prac-p2-result').textContent = '';
+    if (s.gameOver) {
+        if (s.winner===1) { p1.classList.add('winner'); p2.classList.add('loser'); document.getElementById('prac-p1-result').textContent='승리!'; document.getElementById('prac-p1-result').className='player-result win'; document.getElementById('prac-p2-result').textContent='패배'; document.getElementById('prac-p2-result').className='player-result lose'; }
+        else { p2.classList.add('winner'); p1.classList.add('loser'); document.getElementById('prac-p2-result').textContent='승리!'; document.getElementById('prac-p2-result').className='player-result win'; document.getElementById('prac-p1-result').textContent='패배'; document.getElementById('prac-p1-result').className='player-result lose'; }
+    } else {
+        if (s.turn===1) p1.classList.add('active-1');
+        else p2.classList.add('active-2');
+    }
+}
+
+function setPracMode(m) {
+    if (pracState.turn!==1||pracState.gameOver||pracThinking) return;
+    pracMode = m;
+    updatePracModeUI();
+    renderPractice();
+}
+
+function updatePracModeUI() {
+    const mb = document.getElementById('prac-move-btn'), wb = document.getElementById('prac-wall-btn');
+    mb.className = 'mode-btn' + (pracMode==='move'?' active-move':'');
+    wb.className = 'mode-btn' + (pracMode==='wall'?' active-wall':'');
+}
+
+function pracSqClick(r, c) {
+    if (pracState.turn!==1||pracState.gameOver||pracThinking) return;
+    if (pracMode!=='move') return;
+    const vm = getValidMoves(pracState, 1);
+    if (!vm.some(m=>m.r===r&&m.c===c)) return;
+    pracState = applyMove(pracState, 1, r, c);
+    renderPractice();
+    if (!pracState.gameOver) scheduleAI();
+}
+
+function pracWallClick(r, c, dir) {
+    if (pracState.turn!==1||pracState.gameOver||pracThinking) return;
+    if (pracMode!=='wall') return;
+    if (pracState.wallsLeft[1]<=0) return;
+    if (!canPlaceWall(pracState, r, c, dir)) return;
+    pracState = applyWall(pracState, 1, r, c, dir);
+    renderPractice();
+    if (!pracState.gameOver) scheduleAI();
+}
+
+function scheduleAI() {
+    pracThinking = true;
+    document.getElementById('thinking').classList.add('show');
+    const delay = pracDifficulty==='easy'?500:pracDifficulty==='medium'?900:1400;
+    setTimeout(() => {
+        aiDoMove();
+        pracThinking = false;
+        document.getElementById('thinking').classList.remove('show');
+        renderPractice();
+    }, delay);
+}
+
+// ── AI ──
+function aiDoMove() {
+    const rand = Math.random();
+    const useStrategy = pracDifficulty==='easy'?0.25:pracDifficulty==='medium'?0.65:0.92;
+    if (rand < useStrategy) {
+        aiStrategicMove();
+    } else {
+        aiRandomMove();
+    }
+}
+
+function aiRandomMove() {
+    const moves = getValidMoves(pracState, 2);
+    if (moves.length) {
+        const m = moves[Math.floor(Math.random()*moves.length)];
+        pracState = applyMove(pracState, 2, m.r, m.c);
+    }
+}
+
+function aiStrategicMove() {
+    // Evaluate: prefer move that minimizes own BFS distance,
+    //           and if walls left, sometimes place a wall to maximize opponent BFS.
+    const myGoal = 0, oppGoal = 8;
+    const myPos = pracState.pos[2], oppPos = pracState.pos[1];
+    const myDist = bfsLen(pracState.walls, myPos.r, myPos.c, myGoal);
+    const oppDist = bfsLen(pracState.walls, oppPos.r, oppPos.c, oppGoal);
+
+    // Try best move
+    const moves = getValidMoves(pracState, 2);
+    let bestMove = null, bestScore = -Infinity;
+    for (const m of moves) {
+        const ns = applyMove(pracState, 2, m.r, m.c);
+        if (ns.gameOver) { pracState = ns; return; } // winning move
+        const d = bfsLen(ns.walls, m.r, m.c, myGoal);
+        const score = -d + 0.3*(bfsLen(ns.walls, ns.pos[1].r, ns.pos[1].c, oppGoal));
+        if (score > bestScore) { bestScore=score; bestMove=m; }
+    }
+
+    // Consider wall placement if AI has walls and opponent is close
+    if (pracState.wallsLeft[2]>0 && oppDist<=4 && pracDifficulty!=='easy') {
+        let bestWall = null, bestWScore = -Infinity;
+        // sample candidate wall positions near opponent
+        for (let r=Math.max(0,oppPos.r-2);r<=Math.min(7,oppPos.r+2);r++) {
+            for (let c=Math.max(0,oppPos.c-2);c<=Math.min(7,oppPos.c+2);c++) {
+                for (const dir of ['h','v']) {
+                    if (!canPlaceWall(pracState,r,c,dir)) continue;
+                    const ns = applyWall(pracState, 2, r, c, dir);
+                    const newOppDist = bfsLen(ns.walls, ns.pos[1].r, ns.pos[1].c, oppGoal);
+                    const newMyDist  = bfsLen(ns.walls, ns.pos[2].r, ns.pos[2].c, myGoal);
+                    const score = (newOppDist - oppDist)*2 - (newMyDist - myDist);
+                    if (score > bestWScore) { bestWScore=score; bestWall={r,c,dir}; }
+                }
+            }
+        }
+        if (bestWall && bestWScore > 1.5) {
+            pracState = applyWall(pracState, 2, bestWall.r, bestWall.c, bestWall.dir);
+            return;
+        }
+    }
+
+    if (bestMove) pracState = applyMove(pracState, 2, bestMove.r, bestMove.c);
+    else aiRandomMove();
+}
+
+
+// ════════════════════════════════════════════════════
+//  LOCAL 2P BATTLE
+// ════════════════════════════════════════════════════
+let multiState = null;
+let multiMode = 'move';
+let multiTimer = null;
+let multiTimeLeft = TURN_TIME;
+
+function startLocalBattle() {
+    currentMode = 'multiplayer';
+    multiState = makeInitialState();
+    multiMode = 'move';
+    showScreen('multiplayer-screen');
+
+    document.getElementById('multi-gameover-controls').classList.add('hidden');
+    document.getElementById('timer-section').classList.remove('hidden');
+    document.getElementById('multi-p1-result').textContent = '';
+    document.getElementById('multi-p2-result').textContent = '';
+    document.getElementById('multi-p1-result').className = 'player-result';
+    document.getElementById('multi-p2-result').className = 'player-result';
+    document.getElementById('multi-p1').className = 'player-indicator';
+    document.getElementById('multi-p2').className = 'player-indicator';
+
+    buildBoardDOM('multiplayer-board',
+        multiSqClick,
+        multiWallClick,
+        (r, c, d) => previewWall(
+            'multiplayer-board',
+            multiState,
+            r,
+            c,
+            d,
+            multiMode === 'wall' && !multiState.gameOver && multiState.wallsLeft[multiState.turn] > 0
+        ),
+        () => container_clearPreview('multiplayer-board')
+    );
+
+    renderMultiGame();
+    startTimer();
+}
+
+function renderMultiGame() {
+    if (!multiState) return;
+
+    if (!multiState.gameOver && multiMode === 'wall' && multiState.wallsLeft[multiState.turn] <= 0) {
+        multiMode = 'move';
+    }
+
+    const turn = multiState.turn;
+    const validMoves = (!multiState.gameOver && multiMode === 'move') ? getValidMoves(multiState, turn) : null;
+    renderState('multiplayer-board', multiState, turn, multiState.gameOver ? 'none' : multiMode, validMoves);
+
+    document.getElementById('multi-p1-walls').textContent = `벽 ${multiState.wallsLeft[1]}개`;
+    document.getElementById('multi-p2-walls').textContent = `벽 ${multiState.wallsLeft[2]}개`;
+
+    const p1 = document.getElementById('multi-p1');
+    const p2 = document.getElementById('multi-p2');
+    p1.className = 'player-indicator';
+    p2.className = 'player-indicator';
+
+    const turnIndicator = document.getElementById('multi-turn-indicator');
+    const p1Result = document.getElementById('multi-p1-result');
+    const p2Result = document.getElementById('multi-p2-result');
+
+    updateMultiModeUI();
+
+    if (multiState.gameOver) {
+        stopTimer();
+        turnIndicator.textContent = '게임 종료';
+        turnIndicator.classList.remove('my-turn');
+        document.getElementById('timer-section').classList.add('hidden');
+        document.getElementById('multi-gameover-controls').classList.remove('hidden');
+
+        if (multiState.winner === 1) {
+            p1.classList.add('winner');
+            p2.classList.add('loser');
+            p1Result.textContent = '승리!';
+            p2Result.textContent = '패배';
+            p1Result.className = 'player-result win';
+            p2Result.className = 'player-result lose';
+        } else if (multiState.winner === 2) {
+            p2.classList.add('winner');
+            p1.classList.add('loser');
+            p2Result.textContent = '승리!';
+            p1Result.textContent = '패배';
+            p2Result.className = 'player-result win';
+            p1Result.className = 'player-result lose';
+        }
+        return;
+    }
+
+    p1Result.textContent = '';
+    p2Result.textContent = '';
+    p1Result.className = 'player-result';
+    p2Result.className = 'player-result';
+
+    if (turn === 1) {
+        p1.classList.add('active-1');
+        turnIndicator.textContent = '▲ P1 차례입니다';
+    } else {
+        p2.classList.add('active-2');
+        turnIndicator.textContent = '▼ P2 차례입니다';
+    }
+    turnIndicator.classList.add('my-turn');
+}
+
+function updateMultiModeUI() {
+    const moveBtn = document.getElementById('multi-move-btn');
+    const wallBtn = document.getElementById('multi-wall-btn');
+    const canAct = multiState && !multiState.gameOver;
+    const canWall = canAct && multiState.wallsLeft[multiState.turn] > 0;
+
+    moveBtn.disabled = !canAct;
+    wallBtn.disabled = !canWall;
+    moveBtn.className = 'mode-btn' + (multiMode === 'move' ? ' active-move' : '');
+    wallBtn.className = 'mode-btn' + (multiMode === 'wall' ? ' active-wall' : '');
+}
+
+function setMultiMode(mode) {
+    if (!multiState || multiState.gameOver) return;
+    if (mode === 'wall' && multiState.wallsLeft[multiState.turn] <= 0) return;
+    multiMode = mode;
+    renderMultiGame();
+}
+
+function multiSqClick(r, c) {
+    if (!multiState || multiState.gameOver || multiMode !== 'move') return;
+    const turn = multiState.turn;
+    const validMoves = getValidMoves(multiState, turn);
+    if (!validMoves.some(m => m.r === r && m.c === c)) return;
+
+    stopTimer();
+    multiState = applyMove(multiState, turn, r, c);
+    afterLocalBattleAction();
+}
+
+function multiWallClick(r, c, dir) {
+    if (!multiState || multiState.gameOver || multiMode !== 'wall') return;
+    const turn = multiState.turn;
+    if (multiState.wallsLeft[turn] <= 0) return;
+    if (!canPlaceWall(multiState, r, c, dir)) return;
+
+    stopTimer();
+    multiState = applyWall(multiState, turn, r, c, dir);
+    afterLocalBattleAction();
+}
+
+function afterLocalBattleAction() {
+    container_clearPreview('multiplayer-board');
+    if (!multiState.gameOver && multiState.wallsLeft[multiState.turn] <= 0) {
+        multiMode = 'move';
+    }
+    renderMultiGame();
+    if (!multiState.gameOver) startTimer();
+}
+
+function multiRandomMove() {
+    if (!multiState || multiState.gameOver) return;
+    const turn = multiState.turn;
+    const moves = getValidMoves(multiState, turn);
+    if (!moves.length) return;
+    const move = moves[Math.floor(Math.random() * moves.length)];
+    multiState = applyMove(multiState, turn, move.r, move.c);
+    afterLocalBattleAction();
+}
+
+// ════════════════════════════════════════════════════
+//  TIMER / NAVIGATION
+// ════════════════════════════════════════════════════
+function startTimer() {
+    stopTimer();
+    multiTimeLeft = TURN_TIME;
+    updateTimerDisplay();
+    multiTimer = setInterval(() => {
+        multiTimeLeft--;
+        updateTimerDisplay();
+        if (multiTimeLeft <= 0) {
+            stopTimer();
+            multiRandomMove();
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    if (multiTimer) {
+        clearInterval(multiTimer);
+        multiTimer = null;
+    }
+}
+
+function updateTimerDisplay() {
+    const tv = document.getElementById('timer-value');
+    const tb = document.getElementById('timer-bar-fill');
+    if (!tv || !tb) return;
+    tv.textContent = multiTimeLeft;
+    tb.style.width = (multiTimeLeft / TURN_TIME * 100) + '%';
+    tv.classList.remove('warning', 'danger');
+    tb.classList.remove('warning', 'danger');
+    if (multiTimeLeft <= 5) {
+        tv.classList.add('danger');
+        tb.classList.add('danger');
+    } else if (multiTimeLeft <= 10) {
+        tv.classList.add('warning');
+        tb.classList.add('warning');
+    }
+}
+
+function backToLobby() {
+    stopTimer();
+    currentMode = 'lobby';
+    showScreen('lobby-screen');
+}
+
+function handleMultiRetry() {
+    stopTimer();
+    startLocalBattle();
+}
+
+function handleMultiBack() {
+    stopTimer();
+    multiState = null;
+    backToLobby();
+}
+
+showScreen('lobby-screen');
+
+</script>
+</body>
+</html>
