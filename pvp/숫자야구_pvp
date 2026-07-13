@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚾ 숫자야구 대전</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Noto Sans KR', sans-serif; }
+        .title-font { font-family: 'Black Han Sans', sans-serif; }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        @keyframes bounce-in {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes slide-up {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .float-animation { animation: float 3s ease-in-out infinite; }
+        .pulse-ring { animation: pulse-ring 1.5s ease-out infinite; }
+        .bounce-in { animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .slide-up { animation: slide-up 0.4s ease-out; }
+        .shake { animation: shake 0.5s ease-in-out; }
+        .gradient-bg {
+            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 400% 400%;
+            animation: gradient-shift 15s ease infinite;
+        }
+        .spin-slow { animation: spin-slow 20s linear infinite; }
+        
+        .glass {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+        
+        .number-input {
+            letter-spacing: 0.5em;
+            text-indent: 0.25em;
+        }
+        
+        .history-item {
+            animation: slide-up 0.3s ease-out;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(102, 126, 234, 0.5);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-tertiary {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            transition: all 0.3s ease;
+        }
+        .btn-tertiary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px -10px rgba(245, 158, 11, 0.5);
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse-ring 2s infinite;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c5c5c5; border-radius: 10px; }
+
+        .spoiler-text {
+            color: transparent;
+            background-color: #374151;
+            border-radius: 4px;
+            user-select: all;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .spoiler-text::selection {
+            color: #fff;
+            background-color: #6366f1;
+        }
+        .spoiler-text::-moz-selection {
+            color: #fff;
+            background-color: #6366f1;
+        }
+
+        .timer-ring {
+            stroke-dasharray: 283;
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear;
+        }
+        .timer-warning {
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        .tutorial-hint {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #f59e0b;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4 overflow-auto">
+    
+    <!-- 배경 장식 -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-20 -left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/4 right-1/4 text-8xl opacity-10 spin-slow">⚾</div>
+        <div class="absolute bottom-1/4 left-1/4 text-6xl opacity-10 float-animation">🏆</div>
+    </div>
+
+<!-- ============ 화면 1: 로비 ============ -->
+<div id="screen-lobby" class="relative z-10 w-full max-w-md">
+    <div class="glass rounded-3xl p-8 text-center">
+        <div class="text-7xl mb-4 float-animation">⚾</div>
+        <h1 class="title-font text-4xl text-gray-800 mb-2">숫자야구</h1>
+        <p class="text-gray-500 mb-6">친구와 실시간 대결!</p>
+        
+        <button onclick="startTutorial()" class="btn-tertiary w-full text-white text-lg font-bold py-3 rounded-2xl shadow-lg mb-3">
+            📚 왕초보
+        </button>
+
+        <button onclick="startPractice()" class="btn-secondary w-full text-white text-lg font-bold py-3 rounded-2xl shadow-lg mb-3">
+            🎯 연습하기
+        </button>
+
+        <button onclick="showScreen('screen-waiting'); initWaiting();" class="btn-primary w-full text-white text-xl font-bold py-4 rounded-2xl shadow-lg">
+            🚀 대결하기
+        </button>
+        
+        <p class="text-gray-400 text-sm mt-6">서로 다른 3자리 숫자를 먼저 맞추면 승리!</p>
+    </div>
+</div>
+
+    <!-- ============ 화면 2: 대기실 ============ -->
+    <div id="screen-waiting" class="relative z-10 w-full max-w-md hidden">
+        <div class="glass rounded-3xl p-8 text-center">
+            <div class="text-6xl mb-4">🎮</div>
+            <h2 class="title-font text-3xl text-gray-800 mb-2">대기실</h2>
+            
+            <div class="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-4 mb-4">
+                <p class="text-gray-600 text-sm mb-1">현재 접속자</p>
+                <p id="online-count" class="text-4xl font-black text-purple-600">1</p>
+                <p class="text-gray-500 text-sm">명</p>
+            </div>
+
+            <!-- 비밀번호 설정 -->
+            <div class="bg-yellow-50 rounded-2xl p-4 mb-4">
+                <p class="text-sm font-bold text-gray-600 mb-2">🔐 나의 비밀번호 설정</p>
+                <input type="tel" id="secret-input" maxlength="3" 
+                    class="number-input w-full text-center text-3xl font-black py-3 border-3 border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all mb-2"
+                    placeholder="___">
+                <p id="secret-error" class="text-red-500 text-sm h-5"></p>
+                <p class="text-yellow-700 text-xs">💡 서로 다른 숫자 3개, 첫 자리는 0 불가</p>
+            </div>
+
+            <div id="waiting-status">
+                <button onclick="findMatch()" id="find-match-btn" disabled
+                    class="btn-primary w-full text-white text-xl font-bold py-4 rounded-2xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    🔍 상대 찾기
+                </button>
+                <p id="secret-hint" class="text-gray-400 text-sm mt-2">비밀번호를 먼저 설정해주세요</p>
+            </div>
+
+            <div id="matching-status" class="hidden">
+                <div class="flex items-center justify-center gap-3 mb-4">
+                    <div class="status-dot bg-purple-500"></div>
+                    <span class="text-purple-600 font-bold text-lg">상대를 찾는 중...</span>
+                </div>
+                <p class="text-gray-400 text-sm">잠시만 기다려주세요</p>
+                <button onclick="cancelMatch()" class="mt-4 text-gray-400 hover:text-gray-600 underline">
+                    취소하기
+                </button>
+            </div>
+
+            <button onclick="goToLobby()" class="w-full mt-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-2xl transition-colors">
+                ← 돌아가기
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ 화면 3: 게임 진행 ============ -->
+    <div id="screen-game" class="relative z-10 w-full max-w-lg hidden">
+        <div class="glass rounded-3xl overflow-hidden">
+            <!-- 상단 상태바 -->
+            <div class="bg-gradient-to-r from-purple-600 to-pink-500 p-4 text-white">
+                <div class="flex justify-between items-center">
+                    <div class="text-center flex-1">
+                        <p class="text-xs opacity-80">나</p>
+                        <p id="my-info" class="text-sm font-bold truncate">-</p>
+                    </div>
+                    <div class="text-center px-4">
+                        <div class="relative w-16 h-16">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.3)" stroke-width="4" fill="none"/>
+                                <circle id="timer-ring" cx="32" cy="32" r="28" stroke="white" stroke-width="4" fill="none" 
+                                    class="timer-ring" stroke-linecap="round"/>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span id="timer-text" class="text-xl font-black">30</span>
+                            </div>
+                        </div>
+                        <p class="text-xs font-bold mt-1" id="turn-indicator">내 차례</p>
+                    </div>
+                    <div class="text-center flex-1">
+                        <p class="text-xs opacity-80">상대</p>
+                        <p id="opponent-info" class="text-sm font-bold truncate">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 pb-4">
+                <!-- 내 비밀번호 표시 -->
+                <div class="bg-gray-100 rounded-xl p-4 mb-4 text-center">
+                    <p class="text-xs text-gray-500 mb-1">나의 비밀번호 (드래그해서 확인)</p>
+                    <p id="my-secret" class="text-3xl font-black tracking-widest spoiler-text px-4 py-1 inline-block">---</p>
+                </div>
+
+                <!-- 입력 영역 -->
+                <div id="input-area">
+                    <input type="tel" id="guess-input" maxlength="3" 
+                        class="number-input w-full text-center text-4xl font-black py-4 border-3 border-gray-300 rounded-2xl focus:outline-none focus:border-purple-500 focus:ring-4 focus:ring-purple-200 transition-all"
+                        placeholder="___">
+                    <p id="error-msg" class="text-red-500 text-sm text-center mt-2 h-5"></p>
+                    
+                    <button onclick="submitGuess()" id="submit-btn"
+                        class="btn-primary w-full text-white text-xl font-bold py-4 rounded-2xl shadow-lg mt-2">
+                        확인
+                    </button>
+                </div>
+
+                <!-- 대기 메시지 -->
+                <div id="wait-message" class="hidden text-center py-8">
+                    <div class="text-5xl mb-4">⏳</div>
+                    <p class="text-gray-600 font-bold">상대방 차례입니다</p>
+                    <p class="text-gray-400 text-sm mt-2">기다려주세요...</p>
+                </div>
+
+                <!-- 기록 -->
+                <div class="mt-4">
+                    <div class="flex gap-4">
+                        <div class="flex-1">
+                            <h4 class="text-sm font-bold text-gray-500 mb-2 text-center">📝 내 기록</h4>
+                            <div id="my-history" class="space-y-1 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                                <p class="text-center text-gray-300 text-sm py-4">-</p>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-sm font-bold text-gray-500 mb-2 text-center">👤 상대 기록</h4>
+                            <div id="opponent-history" class="space-y-1 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                                <p class="text-center text-gray-300 text-sm py-4">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 화면 4: 게임 결과 ============ -->
+    <div id="screen-result" class="relative z-10 w-full max-w-md hidden">
+        <div class="glass rounded-3xl p-8 text-center">
+            <div id="result-icon" class="text-8xl mb-4 bounce-in">🏆</div>
+            <h2 id="result-title" class="title-font text-4xl text-gray-800 mb-2">승리!</h2>
+            <p id="result-message" class="text-gray-500 mb-4"></p>
+
+            <!-- 정답 공개 -->
+            <div class="bg-gray-100 rounded-2xl p-4 mb-4">
+                <div class="flex justify-around">
+                    <div>
+                        <p class="text-xs text-gray-500">나의 비밀번호</p>
+                        <p id="result-my-secret" class="text-2xl font-black text-purple-600">---</p>
+                    </div>
+                    <div class="border-l border-gray-300"></div>
+                    <div>
+                        <p class="text-xs text-gray-500">상대 비밀번호</p>
+                        <p id="result-opponent-secret" class="text-2xl font-black text-pink-600">---</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 기록 복기 -->
+            <div class="bg-white rounded-2xl p-4 mb-4 border border-gray-200">
+                <h4 class="text-sm font-bold text-gray-600 mb-3">📋 게임 기록</h4>
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <p class="text-xs text-purple-500 font-bold mb-2" id="result-my-name">내 기록</p>
+                        <div id="result-my-history" class="space-y-1 max-h-40 overflow-y-auto custom-scrollbar text-sm">
+                        </div>
+                    </div>
+                    <div class="border-l border-gray-200"></div>
+                    <div class="flex-1">
+                        <p class="text-xs text-pink-500 font-bold mb-2" id="result-opponent-name">상대 기록</p>
+                        <div id="result-opponent-history" class="space-y-1 max-h-40 overflow-y-auto custom-scrollbar text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="goToLobby()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-4 rounded-2xl transition-colors">
+                    🏠 처음으로
+                </button>
+                <button onclick="playAgain()" class="flex-1 btn-primary text-white font-bold py-4 rounded-2xl shadow-lg">
+                    🔄 다시하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 화면 5: 연습 모드 ============ -->
+    <div id="screen-practice" class="relative z-10 w-full max-w-md hidden">
+        <div class="glass rounded-3xl overflow-hidden">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-600 p-4 text-white text-center">
+                <h2 class="title-font text-2xl">🎯 연습 모드</h2>
+                <p class="text-sm opacity-80">컴퓨터의 숫자를 맞춰보세요!</p>
+            </div>
+
+            <div class="p-6">
+                <div class="bg-green-50 rounded-xl p-3 mb-4 text-center">
+                    <p class="text-xs text-green-600">시도 횟수</p>
+                    <p id="practice-count" class="text-3xl font-black text-green-700">0</p>
+                </div>
+
+                <div>
+                    <input type="tel" id="practice-input" maxlength="3" 
+                        class="number-input w-full text-center text-4xl font-black py-4 border-3 border-gray-300 rounded-2xl focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-200 transition-all"
+                        placeholder="___">
+                    <p id="practice-error" class="text-red-500 text-sm text-center mt-2 h-5"></p>
+                    
+                    <button onclick="submitPracticeGuess()" 
+                        class="btn-secondary w-full text-white text-xl font-bold py-4 rounded-2xl shadow-lg mt-2">
+                        확인
+                    </button>
+                </div>
+
+                <div class="mt-4">
+                    <h4 class="text-sm font-bold text-gray-500 mb-2 text-center">📝 기록</h4>
+                    <div id="practice-history" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                        <p class="text-center text-gray-300 text-sm py-4">-</p>
+                    </div>
+                </div>
+
+                <button onclick="goToLobby()" class="w-full mt-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-2xl transition-colors">
+                    🏠 처음으로 돌아가기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 화면 6: 연습 모드 결과 ============ -->
+    <div id="screen-practice-result" class="relative z-10 w-full max-w-md hidden">
+        <div class="glass rounded-3xl p-8 text-center">
+            <div class="text-8xl mb-4 bounce-in">🎉</div>
+            <h2 class="title-font text-4xl text-green-600 mb-2">정답!</h2>
+            <p class="text-gray-500 mb-4">축하합니다!</p>
+
+            <div class="bg-green-50 rounded-2xl p-4 mb-4">
+                <p class="text-sm text-gray-500">정답</p>
+                <p id="practice-answer" class="text-4xl font-black text-green-600">---</p>
+            </div>
+
+            <div class="bg-gray-100 rounded-2xl p-4 mb-4">
+                <p class="text-sm text-gray-500">시도 횟수</p>
+                <p id="practice-final-count" class="text-3xl font-black text-gray-700">0회</p>
+            </div>
+
+            <button onclick="startPractice()" class="btn-secondary w-full text-white text-lg font-bold py-4 rounded-2xl shadow-lg mb-3">
+                🔄 다시 하기
+            </button>
+
+            <button onclick="goToLobby()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-2xl transition-colors">
+                🏠 처음으로 돌아가기
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ 화면 7: 왕초보 튜토리얼 ============ -->
+    <div id="screen-tutorial" class="relative z-10 w-full max-w-md hidden">
+        <div class="glass rounded-3xl overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 p-4 text-white text-center">
+                <h2 class="title-font text-2xl">📚 왕초보 모드</h2>
+                <p class="text-sm opacity-80">숫자야구를 배워보세요!</p>
+            </div>
+
+            <div class="p-6">
+                <div class="bg-amber-50 rounded-xl p-4 mb-4 text-center border-2 border-amber-300">
+                    <p class="text-xs text-amber-600 mb-1">🔑 정답</p>
+                    <p id="tutorial-answer" class="text-4xl font-black text-amber-600 tracking-widest">915</p>
+                </div>
+
+                <div id="tutorial-hint" class="tutorial-hint rounded-xl p-4 mb-4">
+                    <p id="tutorial-hint-text" class="text-amber-800 font-bold text-center">👇 <span class="text-lg">123</span>을 입력해보세요!</p>
+                </div>
+
+                <div>
+                    <input type="tel" id="tutorial-input" maxlength="3" 
+                        class="number-input w-full text-center text-4xl font-black py-4 border-3 border-gray-300 rounded-2xl focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-200 transition-all"
+                        placeholder="___">
+                    <p id="tutorial-error" class="text-red-500 text-sm text-center mt-2 h-5"></p>
+                    
+                    <button onclick="submitTutorialGuess()" 
+                        class="btn-tertiary w-full text-white text-xl font-bold py-4 rounded-2xl shadow-lg mt-2">
+                        확인
+                    </button>
+                </div>
+
+                <div id="tutorial-explanation" class="hidden mt-4 bg-blue-50 rounded-xl p-4 border border-blue-200">
+                    <p id="tutorial-explanation-text" class="text-blue-800 text-sm"></p>
+                </div>
+
+                <div class="mt-4">
+                    <h4 class="text-sm font-bold text-gray-500 mb-2 text-center">📝 기록</h4>
+                    <div id="tutorial-history" class="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                        <p class="text-center text-gray-300 text-sm py-2">-</p>
+                    </div>
+                </div>
+
+                <button onclick="goToLobby()" class="w-full mt-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-2xl transition-colors">
+                    🏠 처음으로 돌아가기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ 화면 8: 튜토리얼 완료 ============ -->
+    <div id="screen-tutorial-complete" class="relative z-10 w-full max-w-md hidden">
+        <div class="glass rounded-3xl p-8 text-center">
+            <div class="text-8xl mb-4 bounce-in">🎓</div>
+            <h2 class="title-font text-4xl text-amber-600 mb-2">튜토리얼 완료!</h2>
+            <p class="text-gray-500 mb-6">이제 숫자야구를 이해했어요!</p>
+
+            <div class="bg-amber-50 rounded-2xl p-4 mb-6 text-left">
+                <p class="font-bold text-amber-700 mb-2">📌 정리</p>
+                <ul class="text-sm text-amber-800 space-y-1">
+                    <li>• <strong>스트라이크(S)</strong>: 숫자와 위치 모두 맞음</li>
+                    <li>• <strong>볼(B)</strong>: 숫자는 맞지만 위치가 다름</li>
+                    <li>• <strong>아웃(OUT)</strong>: 맞는 숫자가 하나도 없음</li>
+                </ul>
+            </div>
+
+            <button onclick="startPractice()" class="btn-secondary w-full text-white text-lg font-bold py-4 rounded-2xl shadow-lg mb-3">
+                🎯 연습 모드로 가기
+            </button>
+
+            <button onclick="goToLobby()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-2xl transition-colors">
+                🏠 처음으로 돌아가기
+            </button>
+        </div>
+    </div>
+
+    <script>
+    // ============ Firebase 설정 ============
+    const firebaseConfig = {
+        apiKey: "AIzaSyAl8vEENOaOJ7uRPCoAcE-4X_A2M90XSek",
+        authDomain: "baseball-game-0327.firebaseapp.com",
+        databaseURL: "https://baseball-game-0327-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "baseball-game-0327",
+        storageBucket: "baseball-game-0327.firebasestorage.app",
+        messagingSenderId: "379424115764",
+        appId: "1:379424115764:web:b2152d0e08f89c51a80e61"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ============ 게임 상태 ============
+    let myId = null;
+    let mySecret = null;
+    let gameId = null;
+    let isMyTurn = false;
+    let myTurnCount = 0;
+    let opponentTurnCount = 0;
+    let gameResult = null;
+    let gameListeners = [];
+    let gameEnded = false;
+
+    // 이름 고정 (선공/후공)
+    let myDisplayName = '';
+    let opponentDisplayName = '';
+
+    let opponentSecret = '';
+    let isPlayer1 = false;
+
+    // 타이머
+    let turnTimer = null;
+    let timeLeft = 30;
+    const TURN_TIME = 30;
+
+    let myHistoryData = [];
+    let opponentHistoryData = [];
+
+    let disconnectListener = null;
+
+    // 연습 모드
+    let practiceSecret = '';
+    let practiceCount = 0;
+
+    // 튜토리얼
+    const TUTORIAL_SECRET = '915';
+    const TUTORIAL_STEPS = [
+        { guess: '123', hint: '👇 <span class="text-lg">123</span>을 입력해보세요!', explanation: '🔵 <strong>1B (1볼)</strong>: 숫자 1이 정답에 있지만 위치가 달라요! 정답 915에서 1은 두 번째 자리에 있는데, 123에서 1은 첫 번째 자리에 있죠.' },
+        { guess: '345', hint: '👇 <span class="text-lg">345</span>을 입력해보세요!', explanation: '🔴 <strong>1S (1스트라이크)</strong>: 숫자 5가 정답과 같은 위치에 있어요! 정답 915에서 5는 세 번째 자리, 345에서도 5가 세 번째 자리죠. 숫자와 위치가 모두 맞으면 스트라이크!' },
+        { guess: '105', hint: '👇 <span class="text-lg">105</span>을 입력해보세요!', explanation: '🔴🔵 <strong>1S 1B (1스트라이크 1볼)</strong>: 숫자 5가 세 번째 자리로 위치까지 정확해서 스트라이크! 숫자 1은 정답에 있지만 두 번째가 아닌 첫 번째 자리라서 볼이에요.' },
+        { guess: '815', hint: '👇 <span class="text-lg">815</span>을 입력해보세요!', explanation: '🔴🔴 <strong>2S (2스트라이크)</strong>: 숫자 1이 두 번째 자리, 숫자 5가 세 번째 자리로 2개가 위치까지 정확해요! 첫 번째 자리만 맞추면 정답!' },
+        { guess: '843', hint: '👇 <span class="text-lg">843</span>을 입력해보세요!', explanation: '❌ <strong>OUT (아웃)</strong>: 8, 4, 3 중에 정답 915에 있는 숫자가 하나도 없어요! 스트라이크도 볼도 없으면 아웃이에요.' },
+        { guess: '915', hint: '👇 이제 정답 <span class="text-lg">915</span>를 입력해보세요!', explanation: '🎉 <strong>3S (3스트라이크)</strong>: 정답이에요! 9, 1, 5 모두 숫자와 위치가 정확히 맞았어요!' }
+    ];
+    let tutorialStep = 0;
+
+    // ============ 화면 전환 ============
+    function showScreen(screenId) {
+        ['screen-lobby', 'screen-waiting', 'screen-game', 'screen-result',
+         'screen-practice', 'screen-practice-result', 'screen-tutorial', 'screen-tutorial-complete'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(screenId).classList.remove('hidden');
+    }
+
+    // ============ 유틸리티 ============
+    function generateId() {
+        return Math.random().toString(36).substr(2, 9);
+    }
+
+    function validateSecret(secret) {
+        if (secret.length !== 3) return { valid: false, message: '3자리를 입력해주세요' };
+        if (new Set(secret).size !== 3) return { valid: false, message: '중복된 숫자는 안돼요' };
+        if (secret[0] === '0') return { valid: false, message: '첫 자리에 0은 올 수 없어요' };
+        if (!/^[0-9]+$/.test(secret)) return { valid: false, message: '숫자만 입력해주세요' };
+        return { valid: true };
+    }
+
+    function checkGuess(guess, secret) {
+        let strikes = 0, balls = 0;
+        for (let i = 0; i < 3; i++) {
+            if (guess[i] === secret[i]) strikes++;
+            else if (secret.includes(guess[i])) balls++;
+        }
+        return { strikes, balls };
+    }
+
+    function generateRandomGuess() {
+        const digits = [];
+        const available = [1,2,3,4,5,6,7,8,9];
+        const firstIdx = Math.floor(Math.random() * available.length);
+        digits.push(available[firstIdx]);
+        available.splice(firstIdx, 1);
+        available.push(0);
+        for (let i = 0; i < 2; i++) {
+            const idx = Math.floor(Math.random() * available.length);
+            digits.push(available[idx]);
+            available.splice(idx, 1);
+        }
+        return digits.join('');
+    }
+
+    // ============ 대기실 초기화 ============
+    function initWaiting() {
+        myId = generateId();
+
+        const userRef = db.ref(`lobby/${myId}`);
+        userRef.set({ lastActive: firebase.database.ServerValue.TIMESTAMP, status: 'waiting' });
+        userRef.onDisconnect().remove();
+
+        setInterval(() => {
+            if (myId) db.ref(`lobby/${myId}/lastActive`).set(firebase.database.ServerValue.TIMESTAMP);
+        }, 30000);
+
+        db.ref('lobby').on('value', (snapshot) => {
+            const now = Date.now();
+            let activeCount = 0;
+            snapshot.forEach(child => {
+                const data = child.val();
+                if (data.lastActive && (now - data.lastActive) < 60000) activeCount++;
+            });
+            document.getElementById('online-count').textContent = activeCount;
+        });
+    }
+
+    // ============ 비밀번호 입력 감지 ============
+    document.getElementById('secret-input').addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        const secret = this.value;
+        const validation = validateSecret(secret);
+        const errorEl = document.getElementById('secret-error');
+        const findBtn = document.getElementById('find-match-btn');
+        const hintEl = document.getElementById('secret-hint');
+
+        if (secret.length === 3) {
+            if (validation.valid) {
+                errorEl.textContent = '';
+                findBtn.disabled = false;
+                hintEl.textContent = '✅ 비밀번호 설정 완료! 상대를 찾아보세요';
+                hintEl.className = 'text-green-500 text-sm mt-2';
+                mySecret = secret;
+            } else {
+                errorEl.textContent = validation.message;
+                findBtn.disabled = true;
+                hintEl.textContent = '비밀번호를 올바르게 설정해주세요';
+                hintEl.className = 'text-gray-400 text-sm mt-2';
+            }
+        } else {
+            errorEl.textContent = '';
+            findBtn.disabled = true;
+            hintEl.textContent = '비밀번호를 먼저 설정해주세요';
+            hintEl.className = 'text-gray-400 text-sm mt-2';
+        }
+    });
+
+    // ============ 상대 찾기 ============
+    async function findMatch() {
+        if (!mySecret) {
+            document.getElementById('secret-error').textContent = '비밀번호를 먼저 설정해주세요';
+            return;
+        }
+
+        document.getElementById('waiting-status').classList.add('hidden');
+        document.getElementById('matching-status').classList.remove('hidden');
+
+        const queueRef = db.ref(`matchQueue/${myId}`);
+        await queueRef.set({ secret: mySecret, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        queueRef.onDisconnect().remove();
+
+        const queueSnapshot = await db.ref('matchQueue').orderByChild('timestamp').once('value');
+        const queue = [];
+        queueSnapshot.forEach(child => {
+            if (child.key !== myId) queue.push({ id: child.key, data: child.val() });
+        });
+
+        if (queue.length > 0) {
+            const opponent = queue[0];
+            gameId = `${myId}_${opponent.id}`;
+            isPlayer1 = true;
+
+            // 선공: 나, 후공: 상대
+            myDisplayName = '선공';
+            opponentDisplayName = '후공';
+            opponentSecret = opponent.data.secret;
+
+            await db.ref(`games/${gameId}`).set({
+                player1: myId,
+                player2: opponent.id,
+                player1Secret: mySecret,
+                player2Secret: opponentSecret,
+                currentTurn: myId,
+                status: 'playing',
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            await db.ref(`matchQueue/${myId}`).remove();
+            await db.ref(`matchQueue/${opponent.id}`).remove();
+            db.ref(`lobby/${myId}`).remove();
+
+            startGame();
+        } else {
+            const matchListener = db.ref('games').orderByChild('player2').equalTo(myId).on('child_added', async (snapshot) => {
+                const game = snapshot.val();
+                if (game && game.status === 'playing') {
+                    gameId = snapshot.key;
+                    isPlayer1 = false;
+
+                    // 후공: 나, 선공: 상대
+                    myDisplayName = '후공';
+                    opponentDisplayName = '선공';
+                    opponentSecret = game.player1Secret;
+
+                    db.ref(`matchQueue/${myId}`).remove();
+                    db.ref('games').off('child_added', matchListener);
+                    db.ref(`lobby/${myId}`).remove();
+
+                    startGame();
+                }
+            });
+        }
+    }
+
+    function cancelMatch() {
+        db.ref(`matchQueue/${myId}`).remove();
+        document.getElementById('waiting-status').classList.remove('hidden');
+        document.getElementById('matching-status').classList.add('hidden');
+    }
+
+    // ============ 게임 시작 ============
+    function startGame() {
+        myHistoryData = [];
+        opponentHistoryData = [];
+        gameEnded = false;
+
+        showScreen('screen-game');
+        document.getElementById('my-secret').textContent = mySecret;
+        document.getElementById('my-info').textContent = myDisplayName;
+        document.getElementById('opponent-info').textContent = opponentDisplayName;
+
+        document.getElementById('my-history').innerHTML = '<p class="text-center text-gray-300 text-sm py-4">-</p>';
+        document.getElementById('opponent-history').innerHTML = '<p class="text-center text-gray-300 text-sm py-4">-</p>';
+        document.getElementById('guess-input').value = '';
+        document.getElementById('error-msg').textContent = '';
+
+        listenToGame();
+        setupDisconnectListener();
+    }
+
+    function setupDisconnectListener() {
+        const gameRef = db.ref(`games/${gameId}`);
+        const myPlayerKey = isPlayer1 ? 'player1Online' : 'player2Online';
+        const opponentPlayerKey = isPlayer1 ? 'player2Online' : 'player1Online';
+
+        gameRef.child(myPlayerKey).set(true);
+        gameRef.child(myPlayerKey).onDisconnect().set(false);
+
+        disconnectListener = gameRef.child(opponentPlayerKey).on('value', async (snapshot) => {
+            const isOnline = snapshot.val();
+            if (isOnline === false) {
+                const gameSnapshot = await gameRef.once('value');
+                const game = gameSnapshot.val();
+                if (game && game.status === 'playing') {
+                    await gameRef.update({ status: 'finished', winner: myId, disconnected: isPlayer1 ? 'player2' : 'player1' });
+                }
+            }
+        });
+    }
+
+    // ============ 게임 진행 ============
+    function listenToGame() {
+        gameListeners.forEach(({ ref, type, callback }) => ref.off(type, callback));
+        gameListeners = [];
+
+        const gameRef = db.ref(`games/${gameId}`);
+
+        const gameListener = gameRef.on('value', (snapshot) => {
+            const game = snapshot.val();
+            if (!game) return;
+            if (game.status === 'playing') {
+                isMyTurn = (game.currentTurn === myId);
+                updateTurnUI();
+                startTimer();
+            }
+            if (game.status === 'finished') {
+                clearTimer();
+                endGame(game);
+            }
+        });
+        gameListeners.push({ ref: gameRef, type: 'value', callback: gameListener });
+
+        const opponentMovesRef = db.ref(`games/${gameId}/moves`);
+        const movesListener = opponentMovesRef.on('child_added', (snapshot) => {
+            const move = snapshot.val();
+            if (move.playerId !== myId) {
+                opponentTurnCount++;
+                addOpponentHistory(move.guess, move.strikes, move.balls, move.isTimeout);
+                opponentHistoryData.push({ guess: move.guess, strikes: move.strikes, balls: move.balls, timeout: move.isTimeout });
+            }
+        });
+        gameListeners.push({ ref: opponentMovesRef, type: 'child_added', callback: movesListener });
+    }
+
+    function updateTurnUI() {
+        const inputArea = document.getElementById('input-area');
+        const waitMessage = document.getElementById('wait-message');
+        const turnIndicator = document.getElementById('turn-indicator');
+
+        if (isMyTurn) {
+            inputArea.classList.remove('hidden');
+            waitMessage.classList.add('hidden');
+            turnIndicator.textContent = '🎯 내 차례!';
+            turnIndicator.className = 'text-xs font-black text-yellow-300';
+        } else {
+            inputArea.classList.add('hidden');
+            waitMessage.classList.remove('hidden');
+            turnIndicator.textContent = '상대 차례';
+            turnIndicator.className = 'text-xs font-bold text-white/80';
+        }
+    }
+
+    async function submitGuess() {
+        const input = document.getElementById('guess-input');
+        const guess = input.value;
+        const errorMsg = document.getElementById('error-msg');
+
+        const validation = validateSecret(guess);
+        if (!validation.valid) {
+            errorMsg.textContent = validation.message;
+            input.classList.add('shake');
+            setTimeout(() => input.classList.remove('shake'), 500);
+            return;
+        }
+
+        errorMsg.textContent = '';
+        input.value = '';
+
+        const gameSnapshot = await db.ref(`games/${gameId}`).once('value');
+        const game = gameSnapshot.val();
+        const opponentSecretNum = isPlayer1 ? game.player2Secret : game.player1Secret;
+        const result = checkGuess(guess, opponentSecretNum);
+
+        myTurnCount++;
+
+        await db.ref(`games/${gameId}/moves`).push({
+            playerId: myId,
+            guess: guess,
+            strikes: result.strikes,
+            balls: result.balls,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        addMyHistory(guess, result.strikes, result.balls);
+        myHistoryData.push({ guess, strikes: result.strikes, balls: result.balls });
+
+        if (result.strikes === 3) {
+            await db.ref(`games/${gameId}`).update({ status: 'finished', winner: myId });
+        } else {
+            const nextPlayer = isPlayer1 ? game.player2 : game.player1;
+            await db.ref(`games/${gameId}`).update({ currentTurn: nextPlayer });
+        }
+    }
+
+    // ============ 타이머 ============
+    function startTimer() {
+        clearTimer();
+        timeLeft = TURN_TIME;
+        updateTimerDisplay();
+
+        turnTimer = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 5) {
+                document.getElementById('timer-text').classList.add('timer-warning');
+                document.getElementById('timer-text').style.color = '#ef4444';
+            }
+            if (timeLeft <= 0) {
+                clearTimer();
+                if (isMyTurn) autoSubmitRandomGuess();
+            }
+        }, 1000);
+    }
+
+    function clearTimer() {
+        if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
+        const timerText = document.getElementById('timer-text');
+        if (timerText) { timerText.classList.remove('timer-warning'); timerText.style.color = ''; }
+    }
+
+    function updateTimerDisplay() {
+        const timerText = document.getElementById('timer-text');
+        const timerRing = document.getElementById('timer-ring');
+        if (timerText) timerText.textContent = timeLeft;
+        if (timerRing) {
+            const circumference = 2 * Math.PI * 28;
+            const offset = circumference * (1 - timeLeft / TURN_TIME);
+            timerRing.style.strokeDashoffset = offset;
+        }
+    }
+
+    async function autoSubmitRandomGuess() {
+        const randomGuess = generateRandomGuess();
+        const gameSnapshot = await db.ref(`games/${gameId}`).once('value');
+        const game = gameSnapshot.val();
+        if (!game || game.status !== 'playing') return;
+
+        const opponentSecretNum = isPlayer1 ? game.player2Secret : game.player1Secret;
+        const result = checkGuess(randomGuess, opponentSecretNum);
+        myTurnCount++;
+
+        await db.ref(`games/${gameId}/moves`).push({
+            playerId: myId,
+            guess: randomGuess,
+            strikes: result.strikes,
+            balls: result.balls,
+            isTimeout: true,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        addMyHistory(randomGuess, result.strikes, result.balls, true);
+        myHistoryData.push({ guess: randomGuess, strikes: result.strikes, balls: result.balls, timeout: true });
+
+        if (result.strikes === 3) {
+            await db.ref(`games/${gameId}`).update({ status: 'finished', winner: myId });
+        } else {
+            const nextPlayer = isPlayer1 ? game.player2 : game.player1;
+            await db.ref(`games/${gameId}`).update({ currentTurn: nextPlayer });
+        }
+    }
+
+    function addMyHistory(guess, strikes, balls, isTimeout = false) {
+        const container = document.getElementById('my-history');
+        const placeholder = container.querySelector('p.text-gray-300');
+        if (placeholder) placeholder.remove();
+        const item = document.createElement('div');
+        item.className = 'history-item bg-purple-50 rounded-lg p-2 text-center';
+        let badge = '';
+        if (strikes === 3) badge = '<span class="text-green-600 font-black">🎉 정답!</span>';
+        else if (strikes === 0 && balls === 0) badge = '<span class="text-red-500 font-bold text-xs">OUT</span>';
+        else {
+            if (strikes > 0) badge += `<span class="bg-green-100 text-green-600 px-1.5 py-0.5 rounded text-xs font-bold mr-1">${strikes}S</span>`;
+            if (balls > 0) badge += `<span class="bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded text-xs font-bold">${balls}B</span>`;
+        }
+        const timeoutBadge = isTimeout ? '<span class="text-orange-500 text-xs ml-1">⏰</span>' : '';
+        item.innerHTML = `<p class="font-bold text-gray-700"><span class="tracking-wider">${guess}</span> <span class="ml-2">${badge}</span>${timeoutBadge}</p>`;
+        container.insertBefore(item, container.firstChild);
+    }
+
+    function addOpponentHistory(guess, strikes, balls, isTimeout = false) {
+        const container = document.getElementById('opponent-history');
+        const placeholder = container.querySelector('p.text-gray-300');
+        if (placeholder) placeholder.remove();
+        const item = document.createElement('div');
+        item.className = 'history-item bg-pink-50 rounded-lg p-2 text-center';
+        let badge = '';
+        if (strikes === 3) badge = '<span class="text-green-600 font-black">🎉 정답!</span>';
+        else if (strikes === 0 && balls === 0) badge = '<span class="text-red-500 font-bold text-xs">OUT</span>';
+        else {
+            if (strikes > 0) badge += `<span class="bg-green-100 text-green-600 px-1.5 py-0.5 rounded text-xs font-bold mr-1">${strikes}S</span>`;
+            if (balls > 0) badge += `<span class="bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded text-xs font-bold">${balls}B</span>`;
+        }
+        const timeoutBadge = isTimeout ? '<span class="text-orange-500 text-xs ml-1">⏰</span>' : '';
+        item.innerHTML = `<p class="font-bold text-gray-700"><span class="tracking-wider">${guess}</span> <span class="ml-2">${badge}</span>${timeoutBadge}</p>`;
+        container.insertBefore(item, container.firstChild);
+    }
+
+    // ============ 게임 종료 ============
+    async function endGame(game) {
+        if (gameEnded) return;
+        gameEnded = true;
+
+        gameListeners.forEach(({ ref, type, callback }) => ref.off(type, callback));
+        gameListeners = [];
+
+        if (disconnectListener) {
+            db.ref(`games/${gameId}`).child(isPlayer1 ? 'player2Online' : 'player1Online').off('value', disconnectListener);
+        }
+
+        const isWinner = game.winner === myId;
+        const wasDisconnect = game.disconnected;
+
+        if (isWinner) {
+            document.getElementById('result-icon').textContent = '🏆';
+            document.getElementById('result-title').textContent = '승리!';
+            document.getElementById('result-title').className = 'title-font text-4xl text-yellow-500 mb-2';
+            document.getElementById('result-message').textContent = wasDisconnect ? '상대방이 나갔습니다. 부전승!' : '축하합니다! 먼저 정답을 맞췄어요!';
+            confetti();
+        } else {
+            document.getElementById('result-icon').textContent = '😢';
+            document.getElementById('result-title').textContent = '패배';
+            document.getElementById('result-title').className = 'title-font text-4xl text-gray-500 mb-2';
+            document.getElementById('result-message').textContent = '아쉽네요. 다음엔 꼭 이길거에요!';
+        }
+
+        document.getElementById('result-my-secret').textContent = mySecret;
+        document.getElementById('result-opponent-secret').textContent = opponentSecret;
+        document.getElementById('result-my-name').textContent = myDisplayName;
+        document.getElementById('result-opponent-name').textContent = opponentDisplayName;
+
+        const myHistoryContainer = document.getElementById('result-my-history');
+        const opponentHistoryContainer = document.getElementById('result-opponent-history');
+        myHistoryContainer.innerHTML = '';
+        opponentHistoryContainer.innerHTML = '';
+
+        myHistoryData.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'bg-purple-50 rounded p-1 text-center';
+            let badge = item.strikes === 3 ? '🎉' : (item.strikes === 0 && item.balls === 0) ? 'OUT' : `${item.strikes}S${item.balls}B`;
+            div.innerHTML = `<span class="font-bold">${item.guess}</span> <span class="text-xs">${badge}${item.timeout ? '⏰' : ''}</span>`;
+            myHistoryContainer.appendChild(div);
+        });
+
+        opponentHistoryData.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'bg-pink-50 rounded p-1 text-center';
+            let badge = item.strikes === 3 ? '🎉' : (item.strikes === 0 && item.balls === 0) ? 'OUT' : `${item.strikes}S${item.balls}B`;
+            div.innerHTML = `<span class="font-bold">${item.guess}</span> <span class="text-xs">${badge}${item.timeout ? '⏰' : ''}</span>`;
+            opponentHistoryContainer.appendChild(div);
+        });
+
+        if (myHistoryData.length === 0) myHistoryContainer.innerHTML = '<p class="text-gray-400 text-center">-</p>';
+        if (opponentHistoryData.length === 0) opponentHistoryContainer.innerHTML = '<p class="text-gray-400 text-center">-</p>';
+
+        showScreen('screen-result');
+    }
+
+    // ============ 처음으로 / 다시하기 ============
+    function goToLobby() {
+        if (myId) db.ref(`lobby/${myId}`).remove();
+        clearTimer();
+        myId = null; mySecret = null; gameId = null;
+        isMyTurn = false; myTurnCount = 0; opponentTurnCount = 0;
+        gameResult = null; gameEnded = false; isPlayer1 = false;
+        myDisplayName = ''; opponentDisplayName = '';
+        opponentSecret = ''; myHistoryData = []; opponentHistoryData = [];
+
+        document.getElementById('my-history').innerHTML = '<p class="text-center text-gray-300 text-sm py-4">-</p>';
+        document.getElementById('opponent-history').innerHTML = '<p class="text-center text-gray-300 text-sm py-4">-</p>';
+        document.getElementById('guess-input').value = '';
+        document.getElementById('secret-input').value = '';
+        document.getElementById('secret-error').textContent = '';
+        document.getElementById('find-match-btn').disabled = true;
+        document.getElementById('secret-hint').textContent = '비밀번호를 먼저 설정해주세요';
+        document.getElementById('secret-hint').className = 'text-gray-400 text-sm mt-2';
+        document.getElementById('waiting-status').classList.remove('hidden');
+        document.getElementById('matching-status').classList.add('hidden');
+
+        showScreen('screen-lobby');
+    }
+
+    function playAgain() {
+        clearTimer();
+        myId = generateId();
+        mySecret = null; gameId = null;
+        isMyTurn = false; myTurnCount = 0; opponentTurnCount = 0;
+        gameResult = null; gameEnded = false; isPlayer1 = false;
+        myDisplayName = ''; opponentDisplayName = '';
+        opponentSecret = ''; myHistoryData = []; opponentHistoryData = [];
+
+        document.getElementById('my-history').innerHTML = '<p class="text-center text-gray-300 text-sm py-4">-</p>';
+        document.getElementById('opponent-history').innerHTML = '<p class="text-center text-gray-300 text-sm py-4">-</p>';
+        document.getElementById('guess-input').value = '';
+        document.getElementById('secret-input').value = '';
+        document.getElementById('secret-error').textContent = '';
+        document.getElementById('find-match-btn').disabled = true;
+        document.getElementById('secret-hint').textContent = '비밀번호를 먼저 설정해주세요';
+        document.getElementById('secret-hint').className = 'text-gray-400 text-sm mt-2';
+        document.getElementById('waiting-status').classList.remove('hidden');
+        document.getElementById('matching-status').classList.add('hidden');
+
+        const userRef = db.ref(`lobby/${myId}`);
+        userRef.set({ lastActive: firebase.database.ServerValue.TIMESTAMP, status: 'waiting' });
+        userRef.onDisconnect().remove();
+
+        showScreen('screen-waiting');
+    }
+
+    // ============ 연습 모드 ============
+    function startPractice() {
+        practiceSecret = generateRandomGuess();
+        practiceCount = 0;
+        document.getElementById('practice-count').textContent = '0';
+        document.getElementById('practice-input').value = '';
+        document.getElementById('practice-error').textContent = '';
+        document.getElementById('practice-history').innerHTML = '<p class="text-center text-gray-300 text-sm py-4">-</p>';
+        showScreen('screen-practice');
+    }
+
+    function submitPracticeGuess() {
+        const input = document.getElementById('practice-input');
+        const guess = input.value;
+        const errorEl = document.getElementById('practice-error');
+        const validation = validateSecret(guess);
+        if (!validation.valid) {
+            errorEl.textContent = validation.message;
+            input.classList.add('shake');
+            setTimeout(() => input.classList.remove('shake'), 500);
+            return;
+        }
+        errorEl.textContent = '';
+        input.value = '';
+        practiceCount++;
+        document.getElementById('practice-count').textContent = practiceCount;
+        const result = checkGuess(guess, practiceSecret);
+        addPracticeHistory(guess, result.strikes, result.balls);
+        if (result.strikes === 3) {
+            document.getElementById('practice-answer').textContent = practiceSecret;
+            document.getElementById('practice-final-count').textContent = practiceCount + '회';
+            showScreen('screen-practice-result');
+            confetti();
+        }
+    }
+
+    function addPracticeHistory(guess, strikes, balls) {
+        const container = document.getElementById('practice-history');
+        const placeholder = container.querySelector('p.text-gray-300');
+        if (placeholder) placeholder.remove();
+        const item = document.createElement('div');
+        item.className = 'history-item bg-green-50 rounded-lg p-2 text-center';
+        let badge = '';
+        if (strikes === 3) badge = '<span class="text-green-600 font-black">🎉 정답!</span>';
+        else if (strikes === 0 && balls === 0) badge = '<span class="text-red-500 font-bold text-xs">OUT</span>';
+        else {
+            if (strikes > 0) badge += `<span class="bg-green-100 text-green-600 px-1.5 py-0.5 rounded text-xs font-bold mr-1">${strikes}S</span>`;
+            if (balls > 0) badge += `<span class="bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded text-xs font-bold">${balls}B</span>`;
+        }
+        item.innerHTML = `<p class="font-bold text-gray-700"><span class="tracking-wider">${guess}</span> <span class="ml-2">${badge}</span></p>`;
+        container.insertBefore(item, container.firstChild);
+    }
+
+    // ============ 튜토리얼 모드 ============
+    function startTutorial() {
+        tutorialStep = 0;
+        document.getElementById('tutorial-answer').textContent = TUTORIAL_SECRET;
+        document.getElementById('tutorial-input').value = '';
+        document.getElementById('tutorial-error').textContent = '';
+        document.getElementById('tutorial-history').innerHTML = '<p class="text-center text-gray-300 text-sm py-2">-</p>';
+        document.getElementById('tutorial-explanation').classList.add('hidden');
+        updateTutorialHint();
+        showScreen('screen-tutorial');
+    }
+
+    function updateTutorialHint() {
+        if (tutorialStep < TUTORIAL_STEPS.length) {
+            document.getElementById('tutorial-hint-text').innerHTML = TUTORIAL_STEPS[tutorialStep].hint;
+            document.getElementById('tutorial-hint').classList.remove('hidden');
+        } else {
+            document.getElementById('tutorial-hint').classList.add('hidden');
+        }
+    }
+
+    function submitTutorialGuess() {
+        const input = document.getElementById('tutorial-input');
+        const guess = input.value;
+        const errorEl = document.getElementById('tutorial-error');
+        const validation = validateSecret(guess);
+        if (!validation.valid) {
+            errorEl.textContent = validation.message;
+            input.classList.add('shake');
+            setTimeout(() => input.classList.remove('shake'), 500);
+            return;
+        }
+        if (tutorialStep < TUTORIAL_STEPS.length && guess !== TUTORIAL_STEPS[tutorialStep].guess) {
+            errorEl.textContent = `힌트를 따라 ${TUTORIAL_STEPS[tutorialStep].guess}을 입력해보세요!`;
+            input.classList.add('shake');
+            setTimeout(() => input.classList.remove('shake'), 500);
+            return;
+        }
+        errorEl.textContent = '';
+        input.value = '';
+        const result = checkGuess(guess, TUTORIAL_SECRET);
+        addTutorialHistory(guess, result.strikes, result.balls);
+        if (tutorialStep < TUTORIAL_STEPS.length) {
+            document.getElementById('tutorial-explanation').classList.remove('hidden');
+            document.getElementById('tutorial-explanation-text').innerHTML = TUTORIAL_STEPS[tutorialStep].explanation;
+        }
+        if (result.strikes === 3) {
+            setTimeout(() => { showScreen('screen-tutorial-complete'); confetti(); }, 1500);
+        } else {
+            tutorialStep++;
+            setTimeout(() => updateTutorialHint(), 500);
+        }
+    }
+
+    function addTutorialHistory(guess, strikes, balls) {
+        const container = document.getElementById('tutorial-history');
+        const placeholder = container.querySelector('p.text-gray-300');
+        if (placeholder) placeholder.remove();
+        const item = document.createElement('div');
+        item.className = 'history-item bg-amber-50 rounded-lg p-2 text-center';
+        let badge = '';
+        if (strikes === 3) badge = '<span class="text-green-600 font-black">🎉 정답!</span>';
+        else if (strikes === 0 && balls === 0) badge = '<span class="text-red-500 font-bold text-xs">OUT</span>';
+        else {
+            if (strikes > 0) badge += `<span class="bg-green-100 text-green-600 px-1.5 py-0.5 rounded text-xs font-bold mr-1">${strikes}S</span>`;
+            if (balls > 0) badge += `<span class="bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded text-xs font-bold">${balls}B</span>`;
+        }
+        item.innerHTML = `<p class="font-bold text-gray-700"><span class="tracking-wider">${guess}</span> <span class="ml-2">${badge}</span></p>`;
+        container.insertBefore(item, container.firstChild);
+    }
+
+    // ============ 이벤트 리스너 ============
+    document.getElementById('guess-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') submitGuess(); });
+    document.getElementById('secret-input').addEventListener('keypress', (e) => { if (e.key === 'Enter' && !document.getElementById('find-match-btn').disabled) findMatch(); });
+    document.getElementById('practice-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') submitPracticeGuess(); });
+    document.getElementById('tutorial-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') submitTutorialGuess(); });
+
+    document.getElementById('guess-input').addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+    document.getElementById('practice-input').addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+    document.getElementById('tutorial-input').addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+
+    // ============ 효과 ============
+    function confetti() {
+        for (let i = 0; i < 50; i++) {
+            const el = document.createElement('div');
+            el.textContent = ['🎉', '✨', '⭐', '🏆', '⚾'][Math.floor(Math.random() * 5)];
+            el.style.cssText = `position:fixed;left:50%;top:50%;font-size:${20+Math.random()*20}px;pointer-events:none;z-index:1000;transition:all 1s ease-out;`;
+            document.body.appendChild(el);
+            setTimeout(() => {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 100 + Math.random() * 200;
+                el.style.transform = `translate(${Math.cos(angle)*distance}px,${Math.sin(angle)*distance}px) scale(0)`;
+                el.style.opacity = '0';
+            }, 50);
+            setTimeout(() => el.remove(), 1100);
+        }
+    }
+    </script>
+</body>
+</html>
