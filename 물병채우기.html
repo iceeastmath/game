@@ -419,6 +419,7 @@ body{
 //  CONFIG
 // ═══════════════════════════════════════════════
 const NEON = ['#ff80bb','#00cc44','#1133ee','#ff8800','#aa00ff','#00ffee','#ddff00','#ff3344','#ffffff'];
+const STANDARD_NEON = ['#ff3344','#00cc44','#1133ee','#ff8800','#aa00ff','#00ffee','#ddff00'];
 const COLOR_CODES = new Map(NEON.map((color,index)=>[color,String.fromCharCode(65+index)]));
 const TUBE_H = 4;
 
@@ -604,7 +605,7 @@ function shuffle(arr){
 function initGame(){
   const cfg=DIFF_CONFIG[currentDiff];
   const {nc, tubeSlots=[], emptyTubes=0, preset, minMoves:presetMinMoves, puzzles} = cfg;
-  const colors = NEON.slice(0, nc);
+  const colors = (currentDiff==='ch_expert'?NEON:STANDARD_NEON).slice(0,nc);
   const isChallenge = currentDiff.startsWith('ch_');
   const runId=++bfsRunId;
   let activePreset=preset;
@@ -986,11 +987,12 @@ function showVictory(){
 //  CONFETTI
 // ═══════════════════════════════════════════════
 function spawnConfetti(){
+  const confettiColors=currentDiff==='ch_expert'?NEON:STANDARD_NEON;
   for(let i=0;i<70;i++){
     setTimeout(()=>{
       const el=document.createElement('div');
       el.className='confetti-piece';
-      const col=NEON[Math.floor(Math.random()*NEON.length)];
+      const col=confettiColors[Math.floor(Math.random()*confettiColors.length)];
       const size=Math.random()*10+5;
       el.style.cssText=`left:${Math.random()*100}vw;width:${size}px;height:${size}px;background:${col};border-radius:${Math.random()>.5?'50%':'3px'};animation-duration:${Math.random()*2+1.2}s;box-shadow:0 0 6px ${col};`;
       document.body.appendChild(el);
