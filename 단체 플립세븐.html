@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>교실용 변형 플립세븐</title>
+<style>
+:root{--line:#334155;--text:#f8fafc;--muted:#94a3b8;--green:#22c55e;--yellow:#f59e0b}
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:linear-gradient(#020617,#0f172a);color:var(--text)}
+.app{display:grid;grid-template-columns:minmax(280px,1fr) minmax(360px,1.75fr) minmax(230px,0.65fr);gap:14px;padding:14px;min-height:100vh}
+.pill{padding:6px 10px;border-radius:999px;background:#162033;border:1px solid #2c3b55;color:#cbd5e1;font-size:13px}
+.panel{background:#111827;border:1px solid var(--line);border-radius:18px;overflow:hidden}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);background:#0b1220}.panel-head h2{margin:0;font-size:18px}.panel-body{padding:14px}
+button,select{font:inherit}button{border:0;border-radius:11px;padding:10px 14px;font-weight:800;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}.primary{background:var(--green);color:#052e16}.secondary{background:#334155;color:white}.warn{background:var(--yellow);color:#3b2300}.ghost{background:transparent;color:white;border:1px solid var(--line)}
+select{background:#0f172a;color:white;border:1px solid var(--line);border-radius:9px;padding:8px}
+.tools,.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tablewrap{max-height:calc(100vh - 190px);overflow:auto;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse}th,td{padding:9px 7px;border-bottom:1px solid #263244;text-align:center;white-space:nowrap}th{position:sticky;top:0;background:#162033;z-index:2;font-size:13px;color:#cbd5e1}th:first-child,td:first-child{text-align:left}.score{font-weight:900}.smallbtn{padding:7px 9px;font-size:12px}.stopped{background:rgba(34,197,94,.08)}.busted{background:rgba(239,68,68,.1)}.ok{color:#86efac}.bad{color:#fca5a5}
+.center{min-height:calc(100vh - 170px);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:18px}.bigcard{width:min(340px,70vw);aspect-ratio:2.5/3.5;border-radius:24px;background:#f8fafc;color:#0f172a;border:8px solid #e2e8f0;display:grid;place-items:center;box-shadow:0 22px 60px #0006}.bigcard .v{font-size:clamp(81px,13.5vw,144px);font-weight:1000;line-height:1}.negative{background:#fee2e2!important;color:#991b1b!important;border-color:#fecaca!important}.mult{background:#e0f2fe!important;color:#0c4a6e!important;border-color:#bae6fd!important}.stage{display:flex;align-items:center;justify-content:center;column-gap:150px;row-gap:28px;flex-wrap:wrap;width:100%}.stage .bigcard{flex:0 0 auto}.formula{color:#cbd5e1;font-size:18px;display:flex;flex-direction:column;align-items:center;gap:4px}.formula strong{font-size:clamp(56px,8vw,104px);line-height:1;font-weight:1000;color:#fff;text-shadow:0 0 26px rgba(34,197,94,.35)}.message{min-height:24px;font-weight:800}
+.history{display:grid;grid-template-columns:1fr;gap:8px}.scard{width:100%;min-height:92px;border-radius:12px;background:#f8fafc;color:#0f172a;border:3px solid #e2e8f0;display:grid;place-items:center;font-size:26px;font-weight:1000}.empty{background:transparent!important;color:#64748b!important;border:2px dashed #475569!important}.legend{margin-top:12px;font-size:13px;line-height:1.6;color:var(--muted)}
+.overlay{position:fixed;inset:0;background:#020617e8;display:none;align-items:center;justify-content:center;z-index:99;padding:20px}.overlay.show{display:flex}.result{width:min(620px,95vw);background:#111827;border:1px solid var(--line);border-radius:24px;padding:24px;text-align:center}.result h1{margin-top:0}.ranklist{display:grid;gap:10px;margin:16px auto;max-width:420px}.rank{display:flex;justify-content:space-between;padding:14px 16px;background:#1f2937;border-radius:14px;font-size:20px;font-weight:900}.rank:first-child{outline:2px solid #facc15}
+@media(max-width:1000px){.app{grid-template-columns:1fr}.center{min-height:auto;padding:20px 0}.tablewrap{max-height:430px}}
+</style>
+</head>
+<body>
+<div class="app">
+<section class="panel">
+ <div class="panel-head"><h2>학생 번호 / 점수</h2><span class="pill" id="activeCount"></span></div>
+ <div class="panel-body">
+  <div class="tools" style="margin-bottom:10px"><label>인원 <select id="studentCount"></select></label><button class="secondary" id="applyCountBtn">인원 적용</button><button class="ghost" id="stopAllBtn">전원 스톱</button></div>
+  <div class="tablewrap"><table><thead><tr><th>학생</th><th>총점</th><th>상태</th><th>스톱</th></tr></thead><tbody id="studentBody"></tbody></table></div>
+ </div>
+</section>
+
+<section class="panel">
+ <div class="panel-head"><h2>교사가 뽑은 카드</h2><span class="pill" id="roundInfo"></span></div>
+ <div class="panel-body center">
+  <div id="roundState" style="font-size:20px;font-weight:900"></div>
+  <div class="stage">
+   <div class="bigcard" id="bigCard"><div class="v" id="bigValue">?</div></div>
+   <div class="formula">현재 라운드 점수<strong id="roundScore">0</strong></div>
+  </div>
+  <div class="controls"><button class="primary" id="drawBtn">카드 뽑기</button><button class="secondary" id="nextRoundBtn" disabled>다음 라운드</button></div>
+  <div class="message" id="message"></div>
+ </div>
+</section>
+
+<section class="panel">
+ <div class="panel-head"><h2>이번 라운드 기록</h2><span class="pill" id="drawCount"></span></div>
+ <div class="panel-body">
+  <div class="history" id="history"></div>
+  <div class="legend">• 같은 <b>숫자 카드</b>가 다시 나오면 즉시 종료<br>• 스톱한 학생은 그 시점 점수를 확정<br>• 중복 종료 시 진행 중 학생은 이번 라운드 0점<br>• 점수 = 숫자 카드 합 × 배수 카드<br>• 배수 카드는 한 라운드에 한 장만 나옴<br>• ×2, ×3, ×(-2), ×(-3)은 각 2장이고 중복 판정에서 제외</div>
+ </div>
+</section>
+</div>
+
+<div class="overlay" id="overlay"><div class="result"><h1>🏆 최종 TOP 5</h1><div class="ranklist" id="rankList"></div><button class="primary" id="closeResult">결과 닫기</button></div></div>
+
+<script>
+const ROUNDS=15, MAX=7, $=id=>document.getElementById(id);
+const E={count:$("studentCount"),apply:$("applyCountBtn"),body:$("studentBody"),active:$("activeCount"),draw:$("drawBtn"),next:$("nextRoundBtn"),all:$("stopAllBtn"),rinfo:$("roundInfo"),rstate:$("roundState"),big:$("bigCard"),bval:$("bigValue"),rscore:$("roundScore"),msg:$("message"),history:$("history"),dcount:$("drawCount"),overlay:$("overlay"),rank:$("rankList"),close:$("closeResult")};
+for(let i=10;i<=40;i++){let o=document.createElement("option");o.value=i;o.textContent=i+"명";if(i===20)o.selected=true;E.count.appendChild(o)}
+function makeDeck(){let a=[];for(let n=1;n<=10;n++)for(let i=0;i<n;i++)a.push({t:"n",v:n});for(const n of [-2,-4,-6,-8,-10])for(let i=0;i<Math.abs(n);i++)a.push({t:"n",v:n});for(const m of [2,3,-2,-3])for(let i=0;i<2;i++)a.push({t:"m",v:m});return a}
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const label=c=>c.t==="m"?"×"+c.v:c.v, cardCls=c=>c.t==="m"?"mult":c.v<0?"negative":"";
+let students=[],deck=[],round=1,cards=[],ended=false,busted=false,seen=new Set(),multUsed=false,held=[],undoable=new Set(),endedByStop=false;
+function scoreNow(){let s=cards.filter(c=>c.t==="n").reduce((a,c)=>a+c.v,0),m=cards.filter(c=>c.t==="m").reduce((a,c)=>a*c.v,1);return s*m}
+function init(keep=false){let n=keep?(students.length||+E.count.value):+E.count.value;students=Array.from({length:n},(_,i)=>({no:i+1,score:0,state:"active",lock:null}));deck=shuffle(makeDeck());round=1;cards=[];ended=false;seen=new Set();held=[];E.overlay.classList.remove("show");resetRound();render()}
+function renderStudents(){E.body.innerHTML="";let active=0;students.forEach((s,i)=>{if(s.state==="active")active++;let tr=document.createElement("tr");if(s.state==="stopped")tr.classList.add("stopped");if(s.state==="busted")tr.classList.add("busted");let st=s.state==="active"?"진행 중":s.state==="stopped"?`스톱 (${s.lock>=0?"+":""}${s.lock})`:"버스트 (0점)";tr.innerHTML=`<td><b>${s.no}번</b></td><td class="score">${s.score}</td><td class="${s.state==="stopped"?"ok":s.state==="busted"?"bad":""}">${st}</td><td>${undoable.has(i)?`<button class="smallbtn ghost">취소</button>`:`<button class="smallbtn ${s.state==="active"&&!ended?"warn":"secondary"}" ${s.state!=="active"||ended?"disabled":""}>스톱</button>`}</td>`;tr.querySelector("button").onclick=()=>undoable.has(i)?unstop(i):stop(i);E.body.appendChild(tr)});E.active.textContent=`진행 ${active}명`}
+function renderHistory(){E.history.innerHTML="";for(let i=0;i<MAX;i++){let c=cards[i],d=document.createElement("div");if(!c){d.className="scard empty";d.textContent=i+1}else{d.className="scard "+cardCls(c);d.textContent=label(c)}E.history.appendChild(d)}E.dcount.textContent=`${cards.length} / ${MAX}장`}
+function renderCenter(){E.rscore.textContent=busted?0:scoreNow();E.rinfo.textContent=`${round} / ${ROUNDS} 라운드`;E.draw.disabled=ended;E.next.disabled=!ended}
+function render(){renderStudents();renderHistory();renderCenter()}
+function stop(i){let s=students[i];if(ended||s.state!=="active")return;let p=scoreNow();s.state="stopped";s.lock=p;s.score+=p;undoable.add(i);renderStudents();if(students.every(x=>x.state!=="active")){endedByStop=true;endRound("모든 학생이 스톱했습니다. (취소 가능)",false)}}
+function unstop(i){let s=students[i];if(!undoable.has(i)||s.state!=="stopped")return;s.score-=s.lock;s.state="active";s.lock=null;undoable.delete(i);if(ended&&endedByStop){ended=false;endedByStop=false;E.rstate.textContent=cards.length?`${round}라운드 진행 중`:`${round}라운드 준비`;E.msg.textContent="";E.msg.className="message";E.next.textContent="다음 라운드"}render()}
+function stopAll(){if(ended)return;let p=scoreNow();students.forEach((s,i)=>{if(s.state==="active"){s.state="stopped";s.lock=p;s.score+=p;undoable.add(i)}});endedByStop=true;endRound("전원이 스톱했습니다. (취소 가능)",false)}
+function draw(){if(ended)return;undoable.clear();endedByStop=false;let c=null;if(cards.length===MAX-1&&seen.size&&scoreNow()>=30){let v=[...seen][Math.floor(Math.random()*seen.size)],i=deck.findIndex(d=>d.t==="n"&&d.v===v);c=i>=0?deck.splice(i,1)[0]:{t:"n",v:v}}if(!c)for(;;){if(!deck.length){deck=shuffle(makeDeck());held=[]}c=deck.pop();if(c.t==="m"&&multUsed){held.push(c);continue}break}if(c.t==="m")multUsed=true;cards.push(c);E.big.className="bigcard "+cardCls(c);E.bval.textContent=label(c);let bust=false;if(c.t==="n"){if(seen.has(c.v))bust=true;else seen.add(c.v)}if(bust){students.forEach(s=>{if(s.state==="active"){s.state="busted";s.lock=0}});endRound(`중복 숫자 ${c.v}! 진행 중 학생은 이번 라운드 0점입니다.`,true);return}if(cards.length>=MAX){let p=scoreNow();students.forEach(s=>{if(s.state==="active"){s.score+=p;s.state="stopped";s.lock=p}});endRound(`7장 완료! 진행 중 학생은 ${p}점을 얻었습니다.`,false);return}E.rstate.textContent=`${round}라운드 진행 중`;E.msg.textContent=`${cards.length}번째 카드: ${label(c)}`;E.msg.className="message";render()}
+function endRound(txt,bust){ended=true;busted=bust;E.rstate.textContent=bust?"라운드 종료 - 중복!":"라운드 종료";E.msg.textContent=txt;E.msg.className="message "+(bust?"bad":"ok");render();if(round===ROUNDS)E.next.textContent="최종 결과 보기"}
+function next(){if(!ended)return;if(round>=ROUNDS){results();return}round++;if(deck.length<MAX){deck=shuffle(makeDeck());held=[]}cards=[];seen=new Set();ended=false;students.forEach(s=>{s.state="active";s.lock=null});resetRound();render()}
+function resetRound(){busted=false;multUsed=false;undoable.clear();endedByStop=false;if(held.length){deck=shuffle(deck.concat(held));held=[]}E.rstate.textContent=`${round}라운드 준비`;E.big.className="bigcard";E.bval.textContent="?";E.msg.textContent="";E.next.textContent="다음 라운드"}
+function results(){let arr=[...students].sort((a,b)=>b.score-a.score||a.no-b.no).slice(0,5);E.rank.innerHTML="";arr.forEach((s,i)=>{let d=document.createElement("div");d.className="rank";let lab=["🥇","🥈","🥉","4위","5위"][i];d.innerHTML=`<span>${lab} · ${s.no}번</span><span>${s.score}점</span>`;E.rank.appendChild(d)});E.overlay.classList.add("show")}
+E.draw.onclick=draw;E.next.onclick=next;E.all.onclick=stopAll;E.apply.onclick=()=>{if(confirm("인원을 변경하면 점수가 초기화됩니다. 계속할까요?"))init()};E.close.onclick=()=>E.overlay.classList.remove("show");init();
+</script>
+</body>
+</html>
